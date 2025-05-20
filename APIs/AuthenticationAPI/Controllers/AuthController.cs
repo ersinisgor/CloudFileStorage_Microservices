@@ -24,6 +24,18 @@ namespace AuthenticationAPI.Controllers
             }
         }
 
-        
+        [HttpPost("login")]
+        public async Task<ActionResult<AuthResult>> Login(LoginQuery query)
+        {
+            try
+            {
+                var result = await mediator.Send(query);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
