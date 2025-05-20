@@ -11,5 +11,10 @@ namespace AuthenticationAPI.DataContext
         }
 
         public DbSet<User> Users { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+        }
     }
 }
