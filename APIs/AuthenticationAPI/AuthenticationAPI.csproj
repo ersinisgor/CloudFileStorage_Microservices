@@ -23,7 +23,6 @@
     <Folder Include="Data\" />
     <Folder Include="Commands\" />
     <Folder Include="Handlers\" />
-    <Folder Include="DTOs\" />
     <Folder Include="Queries\" />
   </ItemGroup>
 
