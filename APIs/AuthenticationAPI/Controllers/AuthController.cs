@@ -1,11 +1,29 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using AuthenticationAPI.Commands;
+using AuthenticationAPI.Queries;
+using AuthenticationAPI.DTOs;
 
 namespace AuthenticationAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController : ControllerBase
+    public class AuthController(IMediator mediator) : ControllerBase
     {
+        [HttpPost("register")]
+        public async Task<ActionResult<UserDTO>> Register(RegisterCommand command)
+        {
+            try
+            {
+                var result = await mediator.Send(command);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        
     }
 }
