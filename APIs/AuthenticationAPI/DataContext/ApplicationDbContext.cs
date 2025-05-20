@@ -1,0 +1,15 @@
+﻿using AuthenticationAPI.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace AuthenticationAPI.DataContext
+{
+    public class ApplicationDbContext : DbContext
+    {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+        }
+
+        public DbSet<User> Users { get; set; }
+    }
+}
