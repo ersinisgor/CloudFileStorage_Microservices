@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FileMetaDataAPI.Controllers
+namespace FileMetadataAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

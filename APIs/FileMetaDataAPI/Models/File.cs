@@ -1,4 +1,4 @@
-﻿namespace FileMetaDataAPI.Models
+﻿namespace FileMetadataAPI.Models
 {
     public class File
     {
