@@ -37,5 +37,19 @@ namespace AuthenticationAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("refresh-token")]
+        public async Task<ActionResult<AuthResult>> RefreshToken(RefreshTokenCommand command)
+        {
+            try
+            {
+                var result = await mediator.Send(command);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
