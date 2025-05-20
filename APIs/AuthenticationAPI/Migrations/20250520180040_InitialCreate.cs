@@ -21,7 +21,7 @@ namespace AuthenticationAPI.Migrations
                     Email = table.Column<string>(type: "TEXT", nullable: false),
                     PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
                     Role = table.Column<string>(type: "TEXT", nullable: false),
-                    RefreshToken = table.Column<string>(type: "TEXT", nullable: false),
+                    RefreshToken = table.Column<string>(type: "TEXT", nullable: true),
                     RefreshTokenExpiry = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>

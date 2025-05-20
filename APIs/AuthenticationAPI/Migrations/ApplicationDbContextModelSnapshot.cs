@@ -36,7 +36,6 @@ namespace AuthenticationAPI.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("RefreshToken")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("RefreshTokenExpiry")

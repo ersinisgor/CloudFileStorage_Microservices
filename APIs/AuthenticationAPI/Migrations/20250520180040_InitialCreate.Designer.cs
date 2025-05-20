@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuthenticationAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250520120534_InitialCreate")]
+    [Migration("20250520180040_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -39,7 +39,6 @@ namespace AuthenticationAPI.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("RefreshToken")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("RefreshTokenExpiry")
