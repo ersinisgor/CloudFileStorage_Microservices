@@ -1,0 +1,6 @@
+@FileMetaDataAPI_HostAddress = http://localhost:5105
+
+GET {{FileMetaDataAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35514.174 d17.12
+VisualStudioVersion = 17.12.35514.174
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "APIs", "APIs", "{3CA707A9-A80C-4439-8EE8-70C228D1D769}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{79E6FFE8-AB80-427F-BCCF-B71779C5C9E7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticationAPI", "APIs\AuthenticationAPI\AuthenticationAPI.csproj", "{DE70CBB0-78B7-4744-987E-23130C5A8EC0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileMetaDataAPI", "APIs\FileMetaDataAPI\FileMetaDataAPI.csproj", "{C3BC41A8-F690-4D75-9AA8-F3668E546202}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,11 +21,16 @@ Global
 		{DE70CBB0-78B7-4744-987E-23130C5A8EC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE70CBB0-78B7-4744-987E-23130C5A8EC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DE70CBB0-78B7-4744-987E-23130C5A8EC0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3BC41A8-F690-4D75-9AA8-F3668E546202}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3BC41A8-F690-4D75-9AA8-F3668E546202}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3BC41A8-F690-4D75-9AA8-F3668E546202}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3BC41A8-F690-4D75-9AA8-F3668E546202}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{DE70CBB0-78B7-4744-987E-23130C5A8EC0} = {3CA707A9-A80C-4439-8EE8-70C228D1D769}
+		{C3BC41A8-F690-4D75-9AA8-F3668E546202} = {3CA707A9-A80C-4439-8EE8-70C228D1D769}
 	EndGlobalSection
 EndGlobal
