@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticationAPI", "APIs\A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileMetaDataAPI", "APIs\FileMetaDataAPI\FileMetaDataAPI.csproj", "{C3BC41A8-F690-4D75-9AA8-F3668E546202}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileStorageAPI", "APIs\FileStorageAPI\FileStorageAPI.csproj", "{8C3C5EEE-5659-4AAF-AB39-CF7C294F4E7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,10 @@ Global
 		{C3BC41A8-F690-4D75-9AA8-F3668E546202}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3BC41A8-F690-4D75-9AA8-F3668E546202}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3BC41A8-F690-4D75-9AA8-F3668E546202}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C3C5EEE-5659-4AAF-AB39-CF7C294F4E7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C3C5EEE-5659-4AAF-AB39-CF7C294F4E7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C3C5EEE-5659-4AAF-AB39-CF7C294F4E7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C3C5EEE-5659-4AAF-AB39-CF7C294F4E7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -32,5 +38,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{DE70CBB0-78B7-4744-987E-23130C5A8EC0} = {3CA707A9-A80C-4439-8EE8-70C228D1D769}
 		{C3BC41A8-F690-4D75-9AA8-F3668E546202} = {3CA707A9-A80C-4439-8EE8-70C228D1D769}
+		{8C3C5EEE-5659-4AAF-AB39-CF7C294F4E7D} = {3CA707A9-A80C-4439-8EE8-70C228D1D769}
 	EndGlobalSection
 EndGlobal
