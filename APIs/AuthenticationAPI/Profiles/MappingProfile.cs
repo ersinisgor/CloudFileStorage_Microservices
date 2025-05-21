@@ -2,11 +2,10 @@
 using AuthenticationAPI.Models;
 using AuthenticationAPI.DTOs;
 using AuthenticationAPI.Commands;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AuthenticationAPI.Profiles
 {
-    public class MappingProfile : Profile
+    internal class MappingProfile : Profile
     {
         public MappingProfile()
         {
