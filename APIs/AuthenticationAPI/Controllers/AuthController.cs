@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using AuthenticationAPI.Commands;
 using AuthenticationAPI.Queries;
 using AuthenticationAPI.DTOs;
+using FluentValidation;
 
 namespace AuthenticationAPI.Controllers
 {
@@ -18,9 +19,13 @@ namespace AuthenticationAPI.Controllers
                 var result = await mediator.Send(command);
                 return Ok(result);
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { Error = ex.Message });
             }
         }
 
@@ -32,9 +37,13 @@ namespace AuthenticationAPI.Controllers
                 var result = await mediator.Send(query);
                 return Ok(result);
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { Error = ex.Message });
             }
         }
 
@@ -46,9 +55,13 @@ namespace AuthenticationAPI.Controllers
                 var result = await mediator.Send(command);
                 return Ok(result);
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { Error = ex.Message });
             }
         }
     }
