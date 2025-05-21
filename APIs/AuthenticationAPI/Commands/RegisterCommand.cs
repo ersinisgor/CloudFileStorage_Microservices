@@ -3,7 +3,7 @@ using AuthenticationAPI.DTOs;
 
 namespace AuthenticationAPI.Commands
 {
-    public class RegisterCommand : IRequest<UserDTO>
+    internal class RegisterCommand : IRequest<UserDTO>
     {
         public string Name { get; set; }
         public string Email { get; set; }
