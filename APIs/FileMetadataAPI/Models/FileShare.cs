@@ -1,8 +1,9 @@
 ﻿namespace FileMetadataAPI.Models
 {
-    public class FileShare
+    internal class FileShare
     {
         public int FileId { get; set; }
+        public File File { get; set; }
         public int UserId { get; set; }
         public string Permission { get; set; }
     }
