@@ -6,6 +6,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using AuthenticationAPI.Queries;
+using AuthenticationAPI.Validators;
+using FluentValidation;
 
 namespace AuthenticationAPI.Handlers
 {
@@ -38,11 +40,18 @@ namespace AuthenticationAPI.Handlers
             user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
             await context.SaveChangesAsync(cancellationToken);
 
-            return new AuthResult
+            var authResult =  new AuthResult
             {
                 Token = tokenHandler.WriteToken(token),
                 RefreshToken = refreshToken
             };
+
+            var validator = new AuthResultValidator();
+            var validationResult = await validator.ValidateAsync(authResult, cancellationToken);
+            if (!validationResult.IsValid)
+                throw new ValidationException(validationResult.Errors);
+
+            return authResult;
         }
     }
 }
