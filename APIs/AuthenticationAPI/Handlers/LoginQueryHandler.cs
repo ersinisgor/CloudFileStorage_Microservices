@@ -11,7 +11,7 @@ using FluentValidation;
 
 namespace AuthenticationAPI.Handlers
 {
-    public class LoginQueryHandler(ApplicationDbContext context, IConfiguration configuration) : IRequestHandler<LoginQuery, AuthResult>
+    internal class LoginQueryHandler(ApplicationDbContext context, IConfiguration configuration) : IRequestHandler<LoginQuery, AuthResult>
     {
         public async Task<AuthResult> Handle(LoginQuery request, CancellationToken cancellationToken)
         {

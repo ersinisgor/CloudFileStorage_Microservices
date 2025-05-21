@@ -9,7 +9,7 @@ using AuthenticationAPI.Commands;
 
 namespace AuthenticationAPI.Handlers
 {
-    public class RefreshTokenCommandHandler(ApplicationDbContext context, IConfiguration configuration) : IRequestHandler<RefreshTokenCommand, AuthResult>
+    internal class RefreshTokenCommandHandler(ApplicationDbContext context, IConfiguration configuration) : IRequestHandler<RefreshTokenCommand, AuthResult>
     {
         public async Task<AuthResult> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
         {

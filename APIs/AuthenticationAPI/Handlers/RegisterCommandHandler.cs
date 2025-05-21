@@ -7,7 +7,7 @@ using AutoMapper;
 
 namespace AuthenticationAPI.Handlers
 {
-    public class RegisterCommandHandler(ApplicationDbContext context, IMapper mapper) : IRequestHandler<RegisterCommand, UserDTO>
+    internal class RegisterCommandHandler(ApplicationDbContext context, IMapper mapper) : IRequestHandler<RegisterCommand, UserDTO>
     {
         public async Task<UserDTO> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
