@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using AuthenticationAPI.Behaviors;
+using MediatR;
+using System.Reflection;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +19,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
     options.UseSqlite(connectionString);
 });
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+});
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly, includeInternalTypes: true);
 builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddSwaggerGen();
 
