@@ -3,7 +3,7 @@ using AuthenticationAPI.Commands;
 
 namespace AuthenticationAPI.Validators
 {
-    public class RefreshTokenCommandValidator : AbstractValidator<RefreshTokenCommand>
+    internal class RefreshTokenCommandValidator : AbstractValidator<RefreshTokenCommand>
     {
         public RefreshTokenCommandValidator()
         {

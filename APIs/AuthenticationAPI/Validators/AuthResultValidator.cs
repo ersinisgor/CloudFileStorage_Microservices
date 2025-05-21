@@ -3,7 +3,7 @@ using AuthenticationAPI.DTOs;
 
 namespace AuthenticationAPI.Validators
 {
-    public class AuthResultValidator : AbstractValidator<AuthResult>
+    internal class AuthResultValidator : AbstractValidator<AuthResult>
     {
         public AuthResultValidator()
         {

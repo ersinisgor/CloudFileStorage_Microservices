@@ -3,7 +3,7 @@ using AuthenticationAPI.Commands;
 
 namespace AuthenticationAPI.Validators
 {
-    public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
+    internal class RegisterCommandValidator : AbstractValidator<RegisterCommand>
     {
         public RegisterCommandValidator()
         {

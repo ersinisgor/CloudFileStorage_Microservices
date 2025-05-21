@@ -3,7 +3,7 @@ using AuthenticationAPI.Queries;
 
 namespace AuthenticationAPI.Validators
 {
-    public class LoginQueryValidator : AbstractValidator<LoginQuery>
+    internal class LoginQueryValidator : AbstractValidator<LoginQuery>
     {
         public LoginQueryValidator()
         {
