@@ -17,6 +17,8 @@ namespace FileMetadataAPI.Profiles
                 .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => Enum.Parse<Visibility>(src.Visibility)));
             CreateMap<CreateFileCommand, File>()
                 .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => Enum.Parse<Visibility>(src.Visibility)));
+            CreateMap<UpdateFileCommand, File>()
+                .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => Enum.Parse<Visibility>(src.Visibility)));
             CreateMap<FileShare, FileShareDTO>();
             CreateMap<FileShareDTO, FileShare>();
         }
