@@ -3,7 +3,7 @@ using FileMetadataAPI.DTOs;
 
 namespace FileMetadataAPI.Commands
 {
-    internal class CreateFileCommand : IRequest<FileDTO>
+    public class CreateFileCommand : IRequest<FileDTO>
     {
         public string Name { get; set; }
         public string Description { get; set; }
