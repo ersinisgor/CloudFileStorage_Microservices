@@ -13,6 +13,23 @@ namespace FileMetadataAPI.Controllers
     [Authorize]
     public class FilesController(IMediator mediator) : ControllerBase
     {
+        [HttpGet]
+        public async Task<ActionResult<List<FileDTO>>> GetFiles()
+        {
+            try
+            {
+                var result = await mediator.Send(new GetFilesQuery());
+                return Ok(result);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<FileDTO>> GetFile(int id)
@@ -50,6 +67,43 @@ namespace FileMetadataAPI.Controllers
             }
         }
 
-       
+        [HttpPut("{id}")]
+        public async Task<ActionResult<FileDTO>> UpdateFile([FromRoute] int id, [FromBody] UpdateFileCommand command)
+        {
+            try
+            {
+                if (id != command.Id)
+                    return BadRequest(new { Error = "ID mismatch." });
+
+                var result = await mediator.Send(command);
+                return Ok(result);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteFile(int id)
+        {
+            try
+            {
+                await mediator.Send(new DeleteFileCommand { Id = id });
+                return NoContent();
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
     }
 }

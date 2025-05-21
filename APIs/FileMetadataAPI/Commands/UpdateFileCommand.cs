@@ -3,7 +3,7 @@ using FileMetadataAPI.DTOs;
 
 namespace FileMetadataAPI.Commands
 {
-    internal class UpdateFileCommand : IRequest<FileDTO>
+    public class UpdateFileCommand : IRequest<FileDTO>
     {
         public int Id { get; set; }
         public string Name { get; set; }
