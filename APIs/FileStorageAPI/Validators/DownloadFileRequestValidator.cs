@@ -3,7 +3,7 @@ using FileStorageAPI.DTOs;
 
 namespace FileStorageAPI.Validators
 {
-    public class DownloadFileRequestValidator : AbstractValidator<DownloadFileRequest>
+    internal class DownloadFileRequestValidator : AbstractValidator<DownloadFileRequest>
     {
         public DownloadFileRequestValidator()
         {
