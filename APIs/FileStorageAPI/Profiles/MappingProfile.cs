@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using FileStorageAPI.Commands.UploadFile;
 using FileStorageAPI.DTOs;
+using FileStorageAPI.Queries.DownloadFile;
 
 namespace FileStorageAPI.Profiles
 {
@@ -9,6 +10,7 @@ namespace FileStorageAPI.Profiles
         public MappingProfile()
         {
             CreateMap<UploadFileRequest, UploadFileCommand>();
+            CreateMap<DownloadFileRequest, DownloadFileQuery>();
         }
     }
 }
