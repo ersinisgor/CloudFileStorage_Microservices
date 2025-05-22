@@ -19,13 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="Commands\" />
-    <Folder Include="Handlers\" />
-    <Folder Include="Models\" />
-    <Folder Include="Profiles\" />
     <Folder Include="Queries\" />
-    <Folder Include="Validators\" />
     <Folder Include="wwwroot\files\" />
   </ItemGroup>
 
