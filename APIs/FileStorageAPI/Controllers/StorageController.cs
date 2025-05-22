@@ -4,6 +4,7 @@ using MediatR;
 using FileStorageAPI.Commands.UploadFile;
 using FileStorageAPI.DTOs;
 using FileStorageAPI.Queries.DownloadFile;
+using FileStorageAPI.Commands;
 
 
 namespace FileStorageAPI.Controllers
@@ -27,6 +28,14 @@ namespace FileStorageAPI.Controllers
             var query = new DownloadFileQuery { FilePath = request.FilePath };
             var result = await mediator.Send(query);
             return File(result.Content, result.ContentType, result.FileName);
+        }
+
+        [HttpDelete("{filePath}")]
+        public async Task<IActionResult> Delete(string filePath)
+        {
+            var command = new DeleteFileCommand { FilePath = filePath };
+            await mediator.Send(command);
+            return NoContent();
         }
     }
 }
