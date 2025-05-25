@@ -4,6 +4,7 @@ using FileMetadataAPI.Commands;
 using FileMetadataAPI.Queries;
 using FileMetadataAPI.DTOs;
 using FluentValidation;
+using FileMetadataAPI.Handlers;
 
 namespace FileMetadataAPI.Controllers
 {
@@ -37,14 +38,19 @@ namespace FileMetadataAPI.Controllers
                 var result = await mediator.Send(new GetFileByIdQuery { Id = id });
                 return Ok(result);
             }
-            catch (ValidationException ex)
+            catch (NotFoundException ex)
             {
-                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+                return NotFound(new { Error = ex.Message });
+            }
+            catch (ForbiddenException ex)
+            {
+                return Forbid(ex.Message);
             }
             catch (Exception ex)
             {
-                return StatusCode(ex.Message.Contains("Authorization") ? 403 : 404, new { Error = ex.Message });
+                return StatusCode(500, new { Error = ex.Message });
             }
+
         }
 
         [HttpPost]
