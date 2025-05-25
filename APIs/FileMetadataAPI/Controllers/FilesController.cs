@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FileMetadataAPI.Commands;
 using FileMetadataAPI.Queries;
@@ -10,7 +9,6 @@ namespace FileMetadataAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class FilesController(IMediator mediator) : ControllerBase
     {
         [HttpGet]
@@ -45,7 +43,7 @@ namespace FileMetadataAPI.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { Error = ex.Message });
+                return StatusCode(ex.Message.Contains("Authorization") ? 403 : 404, new { Error = ex.Message });
             }
         }
 
@@ -95,6 +93,27 @@ namespace FileMetadataAPI.Controllers
             {
                 await mediator.Send(new DeleteFileCommand { Id = id });
                 return NoContent();
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/share")]
+        public async Task<ActionResult> ShareFile(int id, [FromBody] ShareFileCommand command)
+        {
+            try
+            {
+                if (id != command.FileId)
+                    return BadRequest(new { Error = "ID mismatch." });
+
+                await mediator.Send(command);
+                return Ok();
             }
             catch (ValidationException ex)
             {

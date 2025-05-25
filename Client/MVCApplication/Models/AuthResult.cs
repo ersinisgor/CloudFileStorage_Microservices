@@ -1,4 +1,4 @@
-﻿namespace AuthenticationAPI.DTOs
+﻿namespace MVCApplication.Models
 {
     public class AuthResult
     {
