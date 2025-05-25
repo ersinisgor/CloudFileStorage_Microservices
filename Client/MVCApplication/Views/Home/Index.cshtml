@@ -1,8 +1,19 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Cloud File Storage";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-4">Cloud File Storage</h1>
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <p>Welcome, @User.Identity.Name! <a asp-controller="Home" asp-action="Logout">Logout</a></p>
+        <a asp-controller="File" asp-action="Index" class="btn btn-primary">Go to Files</a>
+    }
+    else
+    {
+        <p>Please login to manage your files or register to get started.</p>
+        <a asp-controller="Home" asp-action="Login" class="btn btn-primary">Login</a>
+        <a asp-controller="Home" asp-action="Register" class="btn btn-secondary">Register</a>
+    }
 </div>
