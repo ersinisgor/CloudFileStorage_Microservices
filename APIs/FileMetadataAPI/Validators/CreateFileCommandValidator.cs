@@ -16,6 +16,11 @@ namespace FileMetadataAPI.Validators
                 .NotEmpty().WithMessage("The {PropertyName} field is required.")
                 .Must(v => Enum.TryParse<Models.Visibility>(v, out _))
                 .WithMessage("Invalid visibility value (Private, Public, Shared).");
+            RuleFor(x => x.File)
+                .NotNull().WithMessage("File is required.")
+                .Must(file => file.Length > 0).WithMessage("File cannot be empty.")
+                .Must(file => new[] { ".pdf", ".jpg" }.Contains(Path.GetExtension(file.FileName).ToLower()))
+                .WithMessage("Only .pdf and .jpg files are allowed.");
             RuleForEach(x => x.FileShares)
                 .SetValidator(new FileShareDTOValidator());
         }
