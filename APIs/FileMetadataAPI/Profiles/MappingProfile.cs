@@ -12,9 +12,11 @@ namespace FileMetadataAPI.Profiles
         public MappingProfile()
         {
             CreateMap<File, FileDTO>()
-                .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => src.Visibility.ToString()));
+                .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => src.Visibility.ToString()))
+                .ForMember(dest => dest.Path, opt => opt.MapFrom(src => src.Path));
             CreateMap<FileDTO, File>()
-                .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => Enum.Parse<Visibility>(src.Visibility)));
+                .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => Enum.Parse<Visibility>(src.Visibility)))
+                .ForMember(dest => dest.Path, opt => opt.MapFrom(src => src.Path));
             CreateMap<CreateFileCommand, File>()
                 .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => Enum.Parse<Visibility>(src.Visibility)));
             CreateMap<UpdateFileCommand, File>()
