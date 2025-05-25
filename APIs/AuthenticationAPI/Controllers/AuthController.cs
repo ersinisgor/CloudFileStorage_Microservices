@@ -4,6 +4,7 @@ using AuthenticationAPI.Commands;
 using AuthenticationAPI.Queries;
 using AuthenticationAPI.DTOs;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AuthenticationAPI.Controllers
 {
@@ -54,6 +55,43 @@ namespace AuthenticationAPI.Controllers
             {
                 var result = await mediator.Send(command);
                 return Ok(result);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+        [HttpPost("validate-token")]
+        public async Task<ActionResult<bool>> ValidateToken(ValidateTokenQuery query)
+        {
+            try
+            {
+                var result = await mediator.Send(query);
+                return Ok(result);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { Errors = ex.Errors.Select(e => e.ErrorMessage) });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+        //[Authorize]
+        [HttpPost("logout")]
+        public async Task<ActionResult> Logout(LogoutCommand command)
+        {
+            try
+            {
+                await mediator.Send(command);
+                return Ok(new { Message = "Logout successful" });
             }
             catch (ValidationException ex)
             {
