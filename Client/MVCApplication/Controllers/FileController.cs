@@ -205,5 +205,38 @@ namespace MVCApplication.Controllers
                 return RedirectToAction("Index");
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> Download(int id)
+        {
+            var client = httpClientFactory.CreateClient("GatewayAPI");
+            var token = User.Claims.FirstOrDefault(c => c.Type == "token")?.Value;
+            if (string.IsNullOrEmpty(token))
+            {
+                logger.LogWarning("Authentication token is missing for user: {UserId}", User.FindFirst("nameid")?.Value);
+                ViewBag.Error = "Authentication token is missing.";
+                return RedirectToAction("Index");
+            }
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var metadataResponse = await client.GetAsync($"https://localhost:5000/api/files/{id}");
+            if (!metadataResponse.IsSuccessStatusCode)
+            {
+                return NotFound("File not found or access denied.");
+            }
+
+            var downloadResponse = await client.GetAsync($"https://localhost:5000/api/storage/download?id={id}");
+            if (!downloadResponse.IsSuccessStatusCode)
+            {
+                return NotFound("File download failed.");
+            }
+
+            var fileBytes = await downloadResponse.Content.ReadAsByteArrayAsync();
+            var fileName = downloadResponse.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"file_{id}";
+            var contentType = downloadResponse.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+
+            return File(fileBytes, contentType, fileName);
+        }
     }
 }
