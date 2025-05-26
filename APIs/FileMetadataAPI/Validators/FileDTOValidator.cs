@@ -24,6 +24,8 @@ namespace FileMetadataAPI.Validators
                 .WithMessage("Invalid visibility value (Private, Public, Shared).");
             RuleForEach(x => x.FileShares)
                 .SetValidator(new FileShareDTOValidator());
+            //RuleFor(x => x.IsOwner)
+            //    .NotNull().WithMessage("The {PropertyName} field must be specified.");
         }
     }
 

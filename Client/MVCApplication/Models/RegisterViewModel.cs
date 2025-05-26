@@ -17,7 +17,7 @@ namespace MVCApplication.Models
         [RegularExpression(@"^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).+$", ErrorMessage = "The password must contain at least one capital letter, one number, and one special character (!@#$%^&*).")]
         public string Password { get; set; }
 
-        [Required(ErrorMessage = "The Role field is required.")]
-        public string Role { get; set; }
+        //[Required(ErrorMessage = "The Role field is required.")]
+        //public string Role { get; set; }
     }
 }

@@ -48,9 +48,14 @@ namespace FileStorageAPI.Controllers
                     return BadRequest(new { Error = "Invalid file ID." });
                 }
 
+                
                 // Fetch file metadata from FileMetadataAPI via GatewayAPI
                 var client = httpClientFactory.CreateClient("GatewayAPI");
                 var token = HttpContext.Request.Headers.Authorization.ToString().Replace("Bearer ", "");
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Unauthorized(new { Error = "Authorization token is missing." });
+                }
                 client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
                 var response = await client.GetAsync($"/api/files/{id}");

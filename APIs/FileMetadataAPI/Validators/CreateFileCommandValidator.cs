@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using FileMetadataAPI.Commands;
+using FileMetadataAPI.Models;
 
 namespace FileMetadataAPI.Validators
 {
@@ -14,13 +15,13 @@ namespace FileMetadataAPI.Validators
                 .MaximumLength(1000).WithMessage("The {PropertyName} cannot be longer than {MaxLength} characters.");
             RuleFor(x => x.Visibility)
                 .NotEmpty().WithMessage("The {PropertyName} field is required.")
-                .Must(v => Enum.TryParse<Models.Visibility>(v, out _))
+                .Must(v => Enum.TryParse<Visibility>(v?.Trim(), ignoreCase: true, out _))
                 .WithMessage("Invalid visibility value (Private, Public, Shared).");
             RuleFor(x => x.File)
                 .NotNull().WithMessage("File is required.")
-                .Must(file => file.Length > 0).WithMessage("File cannot be empty.")
-                .Must(file => new[] { ".pdf", ".jpg" }.Contains(Path.GetExtension(file.FileName).ToLower()))
-                .WithMessage("Only .pdf and .jpg files are allowed.");
+                .Must(file => file.Length > 0).WithMessage("File cannot be empty.");
+                //.Must(file => new[] { ".pdf", ".jpg" }.Contains(Path.GetExtension(file.FileName).ToLower()))
+                //.WithMessage("Only .pdf and .jpg files are allowed.");
             RuleForEach(x => x.FileShares)
                 .SetValidator(new FileShareDTOValidator());
         }

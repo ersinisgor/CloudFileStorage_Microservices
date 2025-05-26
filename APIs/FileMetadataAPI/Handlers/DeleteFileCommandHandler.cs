@@ -12,8 +12,12 @@ namespace FileMetadataAPI.Handlers
     {
         public async Task Handle(DeleteFileCommand request, CancellationToken cancellationToken)
         {
-            var userId = int.Parse(httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? throw new Exception("User ID not found."));
+            var userIdClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                throw new ForbiddenException("User ID claim not found.");
+            }
+            var userId = int.Parse(userIdClaim.Value);
 
             var file = await context.Files
                 .FirstOrDefaultAsync(f => f.Id == request.Id && f.OwnerId == userId, cancellationToken)

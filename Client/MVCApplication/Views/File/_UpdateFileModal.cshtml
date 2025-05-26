@@ -1,0 +1,49 @@
+﻿@model MVCApplication.Models.UpdateFileViewModel
+
+<div class="modal fade" id="updateModal-@Model.Id" tabindex="-1" aria-labelledby="updateModalLabel-@Model.Id" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateModalLabel-@Model.Id">Update File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-controller="File" asp-action="Update" method="post">
+                    <input type="hidden" name="Id" value="@Model.Id" />
+                    <div class="mb-3">
+                        <label for="id-@Model.Id" class="form-label">File ID (Read-only)</label>
+                        <input type="text" class="form-control" id="id-@Model.Id" value="@Model.Id" disabled />
+                    </div>
+                    <div class="mb-3">
+                        <label for="name-@Model.Id" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name-@Model.Id" name="Name" value="@Model.Name" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="description-@Model.Id" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description-@Model.Id" name="Description" value="@Model.Description" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="visibility-@Model.Id" class="form-label">Visibility</label>
+                        <select class="form-control" id="visibility-@Model.Id" name="Visibility">
+                            <option value="Private" selected="@(Model.Visibility == "Private")">Private</option>
+                            <option value="Public" selected="@(Model.Visibility == "Public")">Public</option>
+                            <option value="Shared" selected="@(Model.Visibility == "Shared")">Shared</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sharedUserIds-@Model.Id" class="form-label">Share with User IDs (comma-separated)</label>
+                        <input type="text" class="form-control" id="sharedUserIds-@Model.Id" name="SharedUserIds" value="@Model.SharedUserIds">
+                    </div>
+                    <div class="mb-3">
+                        <label for="permission-@Model.Id" class="form-label">Permission</label>
+                        <select class="form-control" id="permission-@Model.Id" name="Permission">
+                            <option value="Read" selected="@(Model.Permission == "Read")">Read</option>
+                            <option value="Edit" selected="@(Model.Permission == "Edit")">Edit</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
