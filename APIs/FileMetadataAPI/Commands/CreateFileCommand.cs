@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using FileMetadataAPI.DTOs;
+using FileMetadataAPI.Models;
 
 namespace FileMetadataAPI.Commands
 {
