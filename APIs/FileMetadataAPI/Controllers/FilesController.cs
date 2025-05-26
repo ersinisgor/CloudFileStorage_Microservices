@@ -5,20 +5,21 @@ using FileMetadataAPI.Queries;
 using FileMetadataAPI.DTOs;
 using FluentValidation;
 using FileMetadataAPI.Handlers;
+using Microsoft.Extensions.Logging;
 
 namespace FileMetadataAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class FilesController(IMediator mediator) : ControllerBase
+    public class FilesController(IMediator mediator, ILogger<FilesController> logger) : ControllerBase
     {
         [HttpGet]
         public async Task<ActionResult<List<FileDTO>>> GetFiles()
         {
             try
             {
-                var result = await mediator.Send(new GetFilesQuery());
-                return Ok(result);
+                var files = await mediator.Send(new GetFilesQuery());
+                return Ok(files);
             }
             catch (ValidationException ex)
             {
@@ -26,6 +27,7 @@ namespace FileMetadataAPI.Controllers
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Error retrieving files");
                 return BadRequest(new { Error = ex.Message });
             }
         }
