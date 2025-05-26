@@ -54,7 +54,7 @@ namespace FileMetadataAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<FileDTO>> CreateFile([FromBody] CreateFileCommand command)
+        public async Task<ActionResult<FileDTO>> CreateFile([FromForm] CreateFileCommand command)
         {
             try
             {
