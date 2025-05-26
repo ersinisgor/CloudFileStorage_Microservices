@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using MVCApplication.Models;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text;
 using System.Security.Claims;
+using System.Text;
 
 namespace MVCApplication.Controllers
 {
@@ -22,15 +22,11 @@ namespace MVCApplication.Controllers
 
         private void AddAuthorizationHeader()
         {
-            // JWT token'ı cookie'den al ve Header'a ekle
             var token = HttpContext.Request.Cookies["AuthToken"];
-
             if (!string.IsNullOrEmpty(token))
             {
                 _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", token);
-
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 _logger.LogDebug("Authorization header added with token");
             }
             else
@@ -44,7 +40,6 @@ namespace MVCApplication.Controllers
             try
             {
                 AddAuthorizationHeader();
-
                 var response = await _httpClient.GetAsync("/api/files");
 
                 if (response.IsSuccessStatusCode)
@@ -55,25 +50,153 @@ namespace MVCApplication.Controllers
                         PropertyNameCaseInsensitive = true
                     });
 
-                    return View(files ?? new List<FileViewModel>());
+                    if (files == null)
+                    {
+                        _logger.LogWarning("No files retrieved for user: {UserId}", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                        ViewBag.Error = "No files found";
+                        return View(new List<FileViewModel>());
+                    }
+
+                    var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("User ID not found"));
+                    foreach (var file in files)
+                    {
+                        file.IsOwner = file.OwnerId == userId;
+                    }
+
+                    _logger.LogInformation("Retrieved {FileCount} files for user: {UserId}", files.Count, userId);
+                    return View(files);
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    _logger.LogWarning("Unauthorized access to files API");
+                    _logger.LogWarning("Unauthorized access to files API for user: {UserId}", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                     return RedirectToAction("Login", "Account");
                 }
                 else
                 {
-                    _logger.LogError("Error retrieving files: {StatusCode}", response.StatusCode);
-                    ViewBag.Error = "Error retrieving files";
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Error retrieving files: {StatusCode}, {Error}", response.StatusCode, errorContent);
+                    ViewBag.Error = $"Error retrieving files: {errorContent}";
                     return View(new List<FileViewModel>());
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception occurred while retrieving files");
+                _logger.LogError(ex, "Exception occurred while retrieving files for user: {UserId}", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 ViewBag.Error = "An error occurred while retrieving files";
                 return View(new List<FileViewModel>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            try
+            {
+                AddAuthorizationHeader();
+                var response = await _httpClient.GetAsync($"/api/files/{id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var file = JsonSerializer.Deserialize<FileViewModel>(json, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (file == null)
+                    {
+                        _logger.LogWarning("File {FileId} not found for user: {UserId}", id, User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                        return NotFound();
+                    }
+
+                    var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new Exception("User ID not found"));
+                    if (file.OwnerId != userId)
+                    {
+                        _logger.LogWarning("User {UserId} not authorized to edit file {FileId}", userId, id);
+                        return Forbid();
+                    }
+
+                    var viewModel = new UpdateFileViewModel
+                    {
+                        Id = file.Id,
+                        Name = file.Name,
+                        Description = file.Description ?? "",
+                        Visibility = file.Visibility,
+                        SharedUserIds = string.Join(",", file.FileShares.Select(fs => fs.UserId)),
+                        Permission = file.FileShares.FirstOrDefault()?.Permission ?? "Read"
+                    };
+
+                    return PartialView("_UpdateFileModal", viewModel);
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Error retrieving file {FileId}: {StatusCode}, {Error}", id, response.StatusCode, errorContent);
+                    return BadRequest(new { Error = errorContent });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception occurred while retrieving file {FileId}", id);
+                return BadRequest(new { Error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Update(UpdateFileViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state for updating file {FileId}", model.Id);
+                return PartialView("_UpdateFileModal", model);
+            }
+
+            try
+            {
+                AddAuthorizationHeader();
+
+                // UpdateFileViewModel'i UpdateFileDTO'ya dönüştür
+                var updateDto = new UpdateFileDTO
+                {
+                    Id = model.Id,
+                    Name = model.Name,
+                    Description = model.Description,
+                    Visibility = model.Visibility,
+                    SharedUserIds = model.SharedUserIds,
+                    Permission = model.Permission
+                };
+
+                var json = JsonSerializer.Serialize(updateDto);
+                var content = new StringContent(json, Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
+
+                var response = await _httpClient.PutAsync($"/api/files/{model.Id}", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("File {FileId} updated successfully for user: {UserId}", model.Id, User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                    return RedirectToAction("Index");
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Error updating file {FileId}: {StatusCode}, {Error}", model.Id, response.StatusCode, errorContent);
+                    ModelState.AddModelError("", $"Error updating file: {errorContent}");
+                    return PartialView("_UpdateFileModal", model);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception occurred while updating file {FileId}", model.Id);
+                ModelState.AddModelError("", "An error occurred while updating the file");
+                return PartialView("_UpdateFileModal", model);
             }
         }
 
@@ -114,7 +237,7 @@ namespace MVCApplication.Controllers
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     _logger.LogError("Error uploading file: {StatusCode}, {Error}", response.StatusCode, errorContent);
-                    ViewBag.Error = "Error uploading file";
+                    ViewBag.Error = $"Error uploading file: {errorContent}";
                     return RedirectToAction("Index");
                 }
             }
@@ -165,7 +288,6 @@ namespace MVCApplication.Controllers
             {
                 AddAuthorizationHeader();
 
-                // FileStorageAPI üzerinden dosyayı indir
                 var response = await _httpClient.GetAsync($"/api/storage/download/{id}");
 
                 if (response.IsSuccessStatusCode)
