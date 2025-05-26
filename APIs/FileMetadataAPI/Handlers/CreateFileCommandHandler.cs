@@ -61,7 +61,9 @@ namespace FileMetadataAPI.Handlers
             file.Path = storageResult.FilePath;
             await context.SaveChangesAsync(cancellationToken);
 
-            return mapper.Map<FileDTO>(file);
+            var fileDto = mapper.Map<FileDTO>(file);
+            fileDto.IsOwner = true; // Yeni oluşturulan dosya, kullanıcıya aittir
+            return fileDto;
         }
     }
 }
