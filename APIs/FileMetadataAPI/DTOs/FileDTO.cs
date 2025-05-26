@@ -10,5 +10,6 @@
         public string Visibility { get; set; }
         public string Path { get; set; } // Added to store file path
         public List<FileShareDTO> FileShares { get; set; } = new();
+        public bool IsOwner { get; set; }
     }
 }
