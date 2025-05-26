@@ -30,8 +30,10 @@ namespace FileMetadataAPI.Handlers
 
             var files = await context.Files
                 .Include(f => f.FileShares)
-                .Where(f => f.OwnerId == userId || f.Visibility == Models.Visibility.Public ||
-                            f.FileShares.Any(fs => fs.UserId == userId))
+                .Where(f => f.OwnerId == userId || 
+                            f.Visibility == Models.Visibility.Public || 
+                            (f.Visibility == Models.Visibility.Shared &&
+                             f.FileShares.Any(fs => fs.UserId == userId))) 
                 .ToListAsync(cancellationToken);
 
             return mapper.Map<List<FileDTO>>(files);
