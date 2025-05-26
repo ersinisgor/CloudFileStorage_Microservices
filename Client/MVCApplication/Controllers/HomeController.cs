@@ -36,7 +36,7 @@ namespace MVCApplication.Controllers
                     return View();
                 }
 
-                var authResult = await response.Content.ReadFromJsonAsync<AuthResult>();
+                var authResult = await response.Content.ReadFromJsonAsync<AuthResultViewModel>();
                 if (authResult?.Token == null || authResult.User == null)
                 {
                     logger.LogWarning("Invalid auth result received for email: {Email}", email);

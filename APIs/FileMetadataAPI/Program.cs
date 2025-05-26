@@ -13,6 +13,8 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+// Database configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -20,14 +22,20 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
     options.UseNpgsql(connectionString);
 });
+
+// MediatR configuration
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
     cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 });
+
+// Validation and mapping
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly, includeInternalTypes: true);
 builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddHttpContextAccessor();
+
+// Logging configuration
 builder.Services.AddLogging(logging =>
 {
     logging.AddConsole();
@@ -35,6 +43,8 @@ builder.Services.AddLogging(logging =>
     logging.SetMinimumLevel(LogLevel.Debug);
 });
 builder.Services.AddSwaggerGen();
+
+// JWT Authentication configuration (for validating tokens from Gateway)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -49,6 +59,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ClockSkew = TimeSpan.Zero
     };
 });
+
+// HTTP client for Gateway communication
 builder.Services.AddHttpClient("GatewayAPI", client =>
 {
     client.BaseAddress = new Uri("https://localhost:5000");

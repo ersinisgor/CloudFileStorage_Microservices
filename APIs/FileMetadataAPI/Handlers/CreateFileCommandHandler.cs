@@ -17,13 +17,12 @@ namespace FileMetadataAPI.Handlers
     {
         public async Task<FileDTO> Handle(CreateFileCommand request, CancellationToken cancellationToken)
         {
-            var userIdClaim = httpContextAccessor.HttpContext.User.FindFirst("nameid")
-                ?? throw new Exception("User ID not found in claims.");
-
-            if (!int.TryParse(userIdClaim.Value, out var userId))
+            var userIdClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
             {
-                throw new Exception("Invalid User ID format.");
+                throw new ForbiddenException("User ID claim not found.");
             }
+            var userId = int.Parse(userIdClaim.Value);
 
             // Create file entity without path initially
             var file = mapper.Map<File>(request);
@@ -62,7 +61,9 @@ namespace FileMetadataAPI.Handlers
             file.Path = storageResult.FilePath;
             await context.SaveChangesAsync(cancellationToken);
 
-            return mapper.Map<FileDTO>(file);
+            var fileDto = mapper.Map<FileDTO>(file);
+            fileDto.IsOwner = true; // Yeni oluşturulan dosya, kullanıcıya aittir
+            return fileDto;
         }
     }
 }
