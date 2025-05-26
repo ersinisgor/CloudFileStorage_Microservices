@@ -52,10 +52,12 @@
                         @if (file.IsOwner)
                         {
                             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#shareModal-@file.Id">Share</button>
+                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#updateModal-@file.Id">Update</button>
                             <form asp-controller="File" asp-action="Delete" method="post" style="display:inline;">
                                 <input type="hidden" name="id" value="@file.Id" />
                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                             </form>
+                            
                         }
                         <form asp-controller="File" asp-action="Download" style="display:inline;">
                             <input type="hidden" name="id" value="@file.Id" />
@@ -65,6 +67,7 @@
                 </tr>
                 @if (file.IsOwner)
                 {
+                    <!-- Share Modal -->
                     <div class="modal fade" id="shareModal-@file.Id" tabindex="-1" aria-labelledby="shareModalLabel-@file.Id" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
@@ -90,6 +93,54 @@
                                         <div class="mb-3">
                                             <label for="permission-@file.Id" class="form-label">Permission</label>
                                             <select class="form-control" id="permission-@file.Id" name="permission">
+                                                <option value="Read" selected="@(file.FileShares.Any(fs => fs.Permission == "Read"))">Read</option>
+                                                <option value="Edit" selected="@(file.FileShares.Any(fs => fs.Permission == "Edit"))">Edit</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Update Modal -->
+                    <div class="modal fade" id="updateModal-@file.Id" tabindex="-1" aria-labelledby="updateModalLabel-@file.Id" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="updateModalLabel-@file.Id">Update @file.Name</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form asp-controller="File" asp-action="Update" method="post">
+                                        <input type="hidden" name="Id" value="@file.Id" />
+                                        <div class="mb-3">
+                                            <label for="id-@file.Id" class="form-label">File ID (Read-only)</label>
+                                            <input type="text" class="form-control" id="id-@file.Id" value="@file.Id" disabled />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="name-@file.Id" class="form-label">Name</label>
+                                            <input type="text" class="form-control" id="name-@file.Id" name="Name" value="@file.Name" required />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="description-@file.Id" class="form-label">Description</label>
+                                            <input type="text" class="form-control" id="description-@file.Id" name="Description" value="@file.Description" />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="visibility-@file.Id" class="form-label">Visibility</label>
+                                            <select class="form-control" id="visibility-@file.Id" name="Visibility">
+                                                <option value="Private" selected="@(file.Visibility == "Private")">Private</option>
+                                                <option value="Public" selected="@(file.Visibility == "Public")">Public</option>
+                                                <option value="Shared" selected="@(file.Visibility == "Shared")">Shared</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="sharedUserIds-@file.Id" class="form-label">Share with User IDs (comma-separated)</label>
+                                            <input type="text" class="form-control" id="sharedUserIds-@file.Id" name="SharedUserIds" value="@string.Join(",", file.FileShares.Select(fs => fs.UserId))">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="permission-@file.Id" class="form-label">Permission</label>
+                                            <select class="form-control" id="permission-@file.Id" name="Permission">
                                                 <option value="Read" selected="@(file.FileShares.Any(fs => fs.Permission == "Read"))">Read</option>
                                                 <option value="Edit" selected="@(file.FileShares.Any(fs => fs.Permission == "Edit"))">Edit</option>
                                             </select>
