@@ -43,6 +43,15 @@ namespace MVCApplication.Controllers
                     return View(new List<FileViewModel>());
                 }
 
+                // Oturum açan kullanıcının ID'sini al
+                var userId = int.Parse(User.FindFirst("nameid")?.Value ?? throw new Exception("User ID not found."));
+
+                // IsOwner özelliğini ayarla
+                foreach (var file in files)
+                {
+                    file.IsOwner = file.OwnerId == userId;
+                }
+
                 logger.LogInformation("Successfully retrieved {FileCount} files for user: {UserId}",
                     files.Count, User.FindFirst("nameid")?.Value);
                 return View(files);
@@ -122,7 +131,7 @@ namespace MVCApplication.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateSharing(int id, string visibility, List<int> sharedUserIds, string permission)
+        public async Task<IActionResult> UpdateSharing(int id, string visibility, string sharedUserIds, string permission)
         {
             try
             {
@@ -137,11 +146,35 @@ namespace MVCApplication.Controllers
 
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
+                // Dosyanın sahibi olduğunu doğrula
+                var fileResponse = await client.GetAsync($"/api/files/{id}");
+                if (!fileResponse.IsSuccessStatusCode)
+                {
+                    logger.LogError("Failed to retrieve file ID: {FileId} for user: {UserId}", id, User.FindFirst("nameid")?.Value);
+                    ViewBag.Error = "File not found or access denied.";
+                    return RedirectToAction("Index");
+                }
+
+                var file = await fileResponse.Content.ReadFromJsonAsync<FileViewModel>();
+                var userId = int.Parse(User.FindFirst("nameid")?.Value ?? throw new Exception("User ID not found."));
+                if (file?.OwnerId != userId)
+                {
+                    logger.LogWarning("User {UserId} attempted to update sharing for file ID: {FileId} they do not own", userId, id);
+                    ViewBag.Error = "You are not authorized to update this file's sharing settings.";
+                    return RedirectToAction("Index");
+                }
+
+                var sharedUserIdList = string.IsNullOrEmpty(sharedUserIds)
+                    ? new List<int>()
+                    : sharedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(int.Parse)
+                        .ToList();
+
                 var request = new ShareFileCommand
                 {
                     FileId = id,
                     Visibility = visibility,
-                    FileShares = sharedUserIds.Select(userId => new FileShareDTO { UserId = userId, Permission = permission }).ToList()
+                    FileShares = sharedUserIdList.Select(userId => new FileShareDTO { UserId = userId, Permission = permission }).ToList()
                 };
 
                 var response = await client.PostAsJsonAsync($"/api/files/{id}/share", request);
@@ -182,6 +215,24 @@ namespace MVCApplication.Controllers
                 }
 
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                // Dosyanın sahibi olduğunu doğrula
+                var fileResponse = await client.GetAsync($"/api/files/{id}");
+                if (!fileResponse.IsSuccessStatusCode)
+                {
+                    logger.LogError("Failed to retrieve file ID: {FileId} for user: {UserId}", id, User.FindFirst("nameid")?.Value);
+                    ViewBag.Error = "File not found or access denied.";
+                    return RedirectToAction("Index");
+                }
+
+                var file = await fileResponse.Content.ReadFromJsonAsync<FileViewModel>();
+                var userId = int.Parse(User.FindFirst("nameid")?.Value ?? throw new Exception("User ID not found."));
+                if (file?.OwnerId != userId)
+                {
+                    logger.LogWarning("User {UserId} attempted to delete file ID: {FileId} they do not own", userId, id);
+                    ViewBag.Error = "You are not authorized to delete this file.";
+                    return RedirectToAction("Index");
+                }
 
                 var response = await client.DeleteAsync($"/api/files/{id}");
                 if (response.IsSuccessStatusCode)
