@@ -1,13 +1,14 @@
 ﻿namespace MVCApplication.Models
 {
-    public class AuthResult
+    public class AuthResultViewModel
     {
         public string Token { get; set; }
         public string RefreshToken { get; set; }
-        public UserInfo User { get; set; }
+        public UserInfoViewModel User { get; set; }
     }
 
-    public class UserInfo
+    public class UserInfoViewModel
+
     {
         public string Id { get; set; }
         public string Name { get; set; }
