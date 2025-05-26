@@ -50,7 +50,10 @@
                     <td>@file.Visibility</td>
                     <td>
                         <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#shareModal-@file.Id">Share</button>
-                        <a href="/api/storage/download?id=@file.Id" class="btn btn-sm btn-success">Download</a>
+                        <form asp-controller="File" asp-action="Download" style="display:inline;">
+                            <input type="hidden" name="id" value="@file.Id" />
+                            <button type="submit" class="btn btn-sm btn-success">Download</button>
+                        </form>
                         <form asp-controller="File" asp-action="Delete" method="post" style="display:inline;">
                             <input type="hidden" name="id" value="@file.Id" />
                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
