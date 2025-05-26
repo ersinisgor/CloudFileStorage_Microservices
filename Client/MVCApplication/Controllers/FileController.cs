@@ -1,74 +1,78 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MVCApplication.Models;
-using System.Net.Http.Json;
 using System.Net.Http.Headers;
-using System.Net.Http;
+using System.Text.Json;
+using System.Text;
+using System.Security.Claims;
 
 namespace MVCApplication.Controllers
 {
-    public class FileController(IHttpClientFactory httpClientFactory, ILogger<FileController> logger) : Controller
+    [Authorize]
+    public class FileController : Controller
     {
+        private readonly HttpClient _httpClient;
+        private readonly ILogger<FileController> _logger;
+
+        public FileController(IHttpClientFactory httpClientFactory, ILogger<FileController> logger)
+        {
+            _httpClient = httpClientFactory.CreateClient("GatewayAPI");
+            _logger = logger;
+        }
+
+        private void AddAuthorizationHeader()
+        {
+            // JWT token'ı cookie'den al ve Header'a ekle
+            var token = HttpContext.Request.Cookies["AuthToken"];
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+
+                _logger.LogDebug("Authorization header added with token");
+            }
+            else
+            {
+                _logger.LogWarning("No auth token found in cookies");
+            }
+        }
+
         public async Task<IActionResult> Index()
         {
             try
             {
-                var client = httpClientFactory.CreateClient("GatewayAPI");
-                var token = User.Claims.FirstOrDefault(c => c.Type == "token")?.Value;
-                if (string.IsNullOrEmpty(token))
+                AddAuthorizationHeader();
+
+                var response = await _httpClient.GetAsync("/api/files");
+
+                if (response.IsSuccessStatusCode)
                 {
-                    logger.LogWarning("Authentication token is missing for user: {UserId}", User.FindFirst("nameid")?.Value);
-                    ViewBag.Error = "Authentication token is missing.";
+                    var json = await response.Content.ReadAsStringAsync();
+                    var files = JsonSerializer.Deserialize<List<FileViewModel>>(json, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    return View(files ?? new List<FileViewModel>());
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _logger.LogWarning("Unauthorized access to files API");
+                    return RedirectToAction("Login", "Account");
+                }
+                else
+                {
+                    _logger.LogError("Error retrieving files: {StatusCode}", response.StatusCode);
+                    ViewBag.Error = "Error retrieving files";
                     return View(new List<FileViewModel>());
                 }
-
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                logger.LogInformation("Sending request to /api/files with token: {TokenPrefix} for user: {UserId}",
-                    token[..10], User.FindFirst("nameid")?.Value);
-
-                var response = await client.GetAsync("/api/files");
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    logger.LogError("Failed to retrieve files from /api/files. Status: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
-                    ViewBag.Error = $"Failed to retrieve files: {response.StatusCode} - {errorContent}";
-                    return View(new List<FileViewModel>());
-                }
-
-                var files = await response.Content.ReadFromJsonAsync<List<FileViewModel>>();
-                if (files == null)
-                {
-                    logger.LogWarning("Received null response from /api/files, returning empty list for user: {UserId}",
-                        User.FindFirst("nameid")?.Value);
-                    ViewBag.Error = "No files found.";
-                    return View(new List<FileViewModel>());
-                }
-
-                // Oturum açan kullanıcının ID'sini al
-                var userId = int.Parse(User.FindFirst("nameid")?.Value ?? throw new Exception("User ID not found."));
-
-                // IsOwner özelliğini ayarla
-                foreach (var file in files)
-                {
-                    file.IsOwner = file.OwnerId == userId;
-                }
-
-                logger.LogInformation("Successfully retrieved {FileCount} files for user: {UserId}",
-                    files.Count, User.FindFirst("nameid")?.Value);
-                return View(files);
-            }
-            catch (HttpRequestException ex)
-            {
-                logger.LogError(ex, "Failed to retrieve files from /api/files. Status: {StatusCode}", ex.StatusCode);
-                ViewBag.Error = ex.StatusCode == System.Net.HttpStatusCode.BadGateway
-                    ? "File service is currently unavailable. Please try again later."
-                    : "Unable to retrieve files. Please try again later.";
-                return View(new List<FileViewModel>());
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unexpected error while retrieving files for user: {UserId}",
-                    User.FindFirst("nameid")?.Value);
-                ViewBag.Error = $"Unexpected error: {ex.Message}";
+                _logger.LogError(ex, "Exception occurred while retrieving files");
+                ViewBag.Error = "An error occurred while retrieving files";
                 return View(new List<FileViewModel>());
             }
         }
@@ -80,122 +84,44 @@ namespace MVCApplication.Controllers
             {
                 if (file == null || file.Length == 0)
                 {
-                    ViewBag.Error = "Please select a file to upload.";
+                    ViewBag.Error = "Please select a file";
                     return RedirectToAction("Index");
                 }
 
-                var client = httpClientFactory.CreateClient("GatewayAPI");
-                var token = User.Claims.FirstOrDefault(c => c.Type == "token")?.Value;
-                if (string.IsNullOrEmpty(token))
-                {
-                    logger.LogWarning("Authentication token is missing for user: {UserId}", User.FindFirst("nameid")?.Value);
-                    ViewBag.Error = "Authentication token is missing.";
-                    return RedirectToAction("Index");
-                }
+                AddAuthorizationHeader();
 
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-                // Prepare file data for FileMetadataAPI
                 using var content = new MultipartFormDataContent();
-                content.Add(new StreamContent(file.OpenReadStream()), "file", file.FileName);
+                using var fileContent = new StreamContent(file.OpenReadStream());
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+                content.Add(fileContent, "file", file.FileName);
                 content.Add(new StringContent(file.FileName), "name");
                 content.Add(new StringContent(description ?? ""), "description");
-                content.Add(new StringContent(visibility), "visibility");
+                content.Add(new StringContent(visibility ?? "Private"), "visibility");
 
-                // Send to FileMetadataAPI, which will handle storage
-                var response = await client.PostAsync("/api/files", content);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    logger.LogError("File upload failed for user: {UserId}. Status: {StatusCode}, Content: {ErrorContent}",
-                        User.FindFirst("nameid")?.Value, response.StatusCode, errorContent);
-                    ViewBag.Error = $"File upload failed: {errorContent}";
-                    return RedirectToAction("Index");
-                }
+                var response = await _httpClient.PostAsync("/api/files", content);
 
-                logger.LogInformation("File uploaded successfully for user: {UserId}", User.FindFirst("nameid")?.Value);
-                return RedirectToAction("Index");
-            }
-            catch (HttpRequestException ex)
-            {
-                logger.LogError(ex, "HTTP error during file upload for user: {UserId}", User.FindFirst("nameid")?.Value);
-                ViewBag.Error = $"File upload failed: {ex.Message}";
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error during file upload for user: {UserId}", User.FindFirst("nameid")?.Value);
-                ViewBag.Error = "File upload failed.";
-                return RedirectToAction("Index");
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> UpdateSharing(int id, string visibility, string sharedUserIds, string permission)
-        {
-            try
-            {
-                var client = httpClientFactory.CreateClient("GatewayAPI");
-                var token = User.Claims.FirstOrDefault(c => c.Type == "token")?.Value;
-                if (string.IsNullOrEmpty(token))
-                {
-                    logger.LogWarning("Authentication token is missing for user: {UserId}", User.FindFirst("nameid")?.Value);
-                    ViewBag.Error = "Authentication token is missing.";
-                    return RedirectToAction("Index");
-                }
-
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-                // Dosyanın sahibi olduğunu doğrula
-                var fileResponse = await client.GetAsync($"/api/files/{id}");
-                if (!fileResponse.IsSuccessStatusCode)
-                {
-                    logger.LogError("Failed to retrieve file ID: {FileId} for user: {UserId}", id, User.FindFirst("nameid")?.Value);
-                    ViewBag.Error = "File not found or access denied.";
-                    return RedirectToAction("Index");
-                }
-
-                var file = await fileResponse.Content.ReadFromJsonAsync<FileViewModel>();
-                var userId = int.Parse(User.FindFirst("nameid")?.Value ?? throw new Exception("User ID not found."));
-                if (file?.OwnerId != userId)
-                {
-                    logger.LogWarning("User {UserId} attempted to update sharing for file ID: {FileId} they do not own", userId, id);
-                    ViewBag.Error = "You are not authorized to update this file's sharing settings.";
-                    return RedirectToAction("Index");
-                }
-
-                var sharedUserIdList = string.IsNullOrEmpty(sharedUserIds)
-                    ? new List<int>()
-                    : sharedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(int.Parse)
-                        .ToList();
-
-                var request = new ShareFileCommand
-                {
-                    FileId = id,
-                    Visibility = visibility,
-                    FileShares = sharedUserIdList.Select(userId => new FileShareDTO { UserId = userId, Permission = permission }).ToList()
-                };
-
-                var response = await client.PostAsJsonAsync($"/api/files/{id}/share", request);
                 if (response.IsSuccessStatusCode)
                 {
-                    logger.LogInformation("Sharing settings updated for file ID: {FileId} by user: {UserId}",
-                        id, User.FindFirst("nameid")?.Value);
+                    _logger.LogInformation("File uploaded successfully: {FileName}", file.FileName);
                     return RedirectToAction("Index");
                 }
-
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Failed to update sharing settings for file ID: {FileId} by user: {UserId}. Status: {StatusCode}, Content: {ErrorContent}",
-                    id, User.FindFirst("nameid")?.Value, response.StatusCode, errorContent);
-                ViewBag.Error = $"Failed to update sharing settings: {errorContent}";
-                return RedirectToAction("Index");
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Error uploading file: {StatusCode}, {Error}", response.StatusCode, errorContent);
+                    ViewBag.Error = "Error uploading file";
+                    return RedirectToAction("Index");
+                }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error during sharing update for file ID: {FileId} by user: {UserId}",
-                    id, User.FindFirst("nameid")?.Value);
-                ViewBag.Error = "Failed to update sharing settings.";
+                _logger.LogError(ex, "Exception occurred while uploading file");
+                ViewBag.Error = "An error occurred while uploading the file";
                 return RedirectToAction("Index");
             }
         }
@@ -205,89 +131,116 @@ namespace MVCApplication.Controllers
         {
             try
             {
-                var client = httpClientFactory.CreateClient("GatewayAPI");
-                var token = User.Claims.FirstOrDefault(c => c.Type == "token")?.Value;
-                if (string.IsNullOrEmpty(token))
-                {
-                    logger.LogWarning("Authentication token is missing for user: {UserId}", User.FindFirst("nameid")?.Value);
-                    ViewBag.Error = "Authentication token is missing.";
-                    return RedirectToAction("Index");
-                }
+                AddAuthorizationHeader();
 
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await _httpClient.DeleteAsync($"/api/files/{id}");
 
-                // Dosyanın sahibi olduğunu doğrula
-                var fileResponse = await client.GetAsync($"/api/files/{id}");
-                if (!fileResponse.IsSuccessStatusCode)
-                {
-                    logger.LogError("Failed to retrieve file ID: {FileId} for user: {UserId}", id, User.FindFirst("nameid")?.Value);
-                    ViewBag.Error = "File not found or access denied.";
-                    return RedirectToAction("Index");
-                }
-
-                var file = await fileResponse.Content.ReadFromJsonAsync<FileViewModel>();
-                var userId = int.Parse(User.FindFirst("nameid")?.Value ?? throw new Exception("User ID not found."));
-                if (file?.OwnerId != userId)
-                {
-                    logger.LogWarning("User {UserId} attempted to delete file ID: {FileId} they do not own", userId, id);
-                    ViewBag.Error = "You are not authorized to delete this file.";
-                    return RedirectToAction("Index");
-                }
-
-                var response = await client.DeleteAsync($"/api/files/{id}");
                 if (response.IsSuccessStatusCode)
                 {
-                    logger.LogInformation("File ID: {FileId} deleted successfully by user: {UserId}",
-                        id, User.FindFirst("nameid")?.Value);
-                    return RedirectToAction("Index");
+                    _logger.LogInformation("File deleted successfully: {FileId}", id);
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+                else
+                {
+                    _logger.LogError("Error deleting file {FileId}: {StatusCode}", id, response.StatusCode);
+                    ViewBag.Error = "Error deleting file";
                 }
 
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Failed to delete file ID: {FileId} by user: {UserId}. Status: {StatusCode}, Content: {ErrorContent}",
-                    id, User.FindFirst("nameid")?.Value, response.StatusCode, errorContent);
-                ViewBag.Error = $"Failed to delete file: {errorContent}";
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error during file deletion for file ID: {FileId} by user: {UserId}",
-                    id, User.FindFirst("nameid")?.Value);
-                ViewBag.Error = "Failed to delete file.";
+                _logger.LogError(ex, "Exception occurred while deleting file {FileId}", id);
+                ViewBag.Error = "An error occurred while deleting the file";
+                return RedirectToAction("Index");
+            }
+        }
+
+        public async Task<IActionResult> Download(int id)
+        {
+            try
+            {
+                AddAuthorizationHeader();
+
+                // FileStorageAPI üzerinden dosyayı indir
+                var response = await _httpClient.GetAsync($"/api/storage/download/{id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                    var fileName = response.Content.Headers.ContentDisposition?.FileNameStar ?? "download";
+                    var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+
+                    return File(fileBytes, contentType, fileName);
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+                else
+                {
+                    _logger.LogError("Error downloading file {FileId}: {StatusCode}", id, response.StatusCode);
+                    ViewBag.Error = "Error downloading file";
+                    return RedirectToAction("Index");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception occurred while downloading file {FileId}", id);
+                ViewBag.Error = "An error occurred while downloading the file";
                 return RedirectToAction("Index");
             }
         }
 
         [HttpPost]
-        public async Task<IActionResult> Download(int id)
+        public async Task<IActionResult> UpdateSharing(int id, string visibility, string sharedUserIds, string permission)
         {
-            var client = httpClientFactory.CreateClient("GatewayAPI");
-            var token = User.Claims.FirstOrDefault(c => c.Type == "token")?.Value;
-            if (string.IsNullOrEmpty(token))
+            try
             {
-                logger.LogWarning("Authentication token is missing for user: {UserId}", User.FindFirst("nameid")?.Value);
-                ViewBag.Error = "Authentication token is missing.";
+                AddAuthorizationHeader();
+
+                var shareCommand = new
+                {
+                    FileId = id,
+                    Visibility = visibility,
+                    SharedUserIds = sharedUserIds?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                                  .Select(s => int.TryParse(s.Trim(), out var userId) ? userId : 0)
+                                                  .Where(userId => userId > 0)
+                                                  .ToList() ?? new List<int>(),
+                    Permission = permission ?? "Read"
+                };
+
+                var json = JsonSerializer.Serialize(shareCommand);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync($"/api/files/{id}/share", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("File sharing updated successfully: {FileId}", id);
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Error updating file sharing {FileId}: {StatusCode}, {Error}", id, response.StatusCode, errorContent);
+                    ViewBag.Error = "Error updating file sharing";
+                }
+
                 return RedirectToAction("Index");
             }
-
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var metadataResponse = await client.GetAsync($"https://localhost:5000/api/files/{id}");
-            if (!metadataResponse.IsSuccessStatusCode)
+            catch (Exception ex)
             {
-                return NotFound("File not found or access denied.");
+                _logger.LogError(ex, "Exception occurred while updating file sharing {FileId}", id);
+                ViewBag.Error = "An error occurred while updating file sharing";
+                return RedirectToAction("Index");
             }
-
-            var downloadResponse = await client.GetAsync($"https://localhost:5000/api/storage/download?id={id}");
-            if (!downloadResponse.IsSuccessStatusCode)
-            {
-                return NotFound("File download failed.");
-            }
-
-            var fileBytes = await downloadResponse.Content.ReadAsByteArrayAsync();
-            var fileName = downloadResponse.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"file_{id}";
-            var contentType = downloadResponse.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
-
-            return File(fileBytes, contentType, fileName);
         }
     }
 }
