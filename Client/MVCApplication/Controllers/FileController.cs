@@ -69,6 +69,12 @@ namespace MVCApplication.Controllers
         {
             try
             {
+                if (file == null || file.Length == 0)
+                {
+                    ViewBag.Error = "Please select a file to upload.";
+                    return RedirectToAction("Index");
+                }
+
                 var client = httpClientFactory.CreateClient("GatewayAPI");
                 var token = User.Claims.FirstOrDefault(c => c.Type == "token")?.Value;
                 if (string.IsNullOrEmpty(token))
@@ -99,6 +105,12 @@ namespace MVCApplication.Controllers
                 }
 
                 logger.LogInformation("File uploaded successfully for user: {UserId}", User.FindFirst("nameid")?.Value);
+                return RedirectToAction("Index");
+            }
+            catch (HttpRequestException ex)
+            {
+                logger.LogError(ex, "HTTP error during file upload for user: {UserId}", User.FindFirst("nameid")?.Value);
+                ViewBag.Error = $"File upload failed: {ex.Message}";
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
