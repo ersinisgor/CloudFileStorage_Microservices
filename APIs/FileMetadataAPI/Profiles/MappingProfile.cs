@@ -23,6 +23,28 @@ namespace FileMetadataAPI.Profiles
                 .ForMember(dest => dest.Visibility, opt => opt.MapFrom(src => Enum.Parse<Visibility>(src.Visibility, true)));
             CreateMap<FileShare, FileShareDTO>();
             CreateMap<FileShareDTO, FileShare>();
+            CreateMap<UpdateFileDTO, UpdateFileCommand>()
+                .ForMember(dest => dest.FileShares, opt => opt.Ignore()) 
+                .AfterMap((src, dest) =>
+                {
+                    dest.FileShares = string.IsNullOrEmpty(src.SharedUserIds)
+                        ? new List<FileShareDTO>()
+                        : src.SharedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s =>
+                            {
+                                if (int.TryParse(s.Trim(), out var userId) && userId > 0)
+                                {
+                                    return new FileShareDTO
+                                    {
+                                        UserId = userId,
+                                        Permission = src.Permission
+                                    };
+                                }
+                                return null;
+                            })
+                            .Where(fs => fs != null)
+                            .ToList();
+                });
         }
     }
 }
