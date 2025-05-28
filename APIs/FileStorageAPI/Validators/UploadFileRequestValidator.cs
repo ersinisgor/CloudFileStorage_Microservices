@@ -20,10 +20,10 @@ namespace FileStorageAPI.Validators
                 .NotNull().WithMessage("File is required.")
                 .Must(file => file.Length > 0).WithMessage("File cannot be empty.")
                 .Must(file => file.Length <= maxFileSize).WithMessage($"File size cannot exceed {maxFileSize / (1024 * 1024)}MB.");
-            RuleFor(x => x.File.FileName)
-                .Must(fileName => _configuration.GetSection("FileStorage:AllowedExtensions").Get<List<string>>()
-                    .Contains(Path.GetExtension(fileName).ToLower()))
-                .WithMessage("Only .pdf and .jpg files are allowed.");
+            //RuleFor(x => x.File.FileName)
+            //    .Must(fileName => _configuration.GetSection("FileStorage:AllowedExtensions").Get<List<string>>()
+            //        .Contains(Path.GetExtension(fileName).ToLower()))
+            //    .WithMessage("Only .pdf and .jpg files are allowed.");
         }
     }
 }

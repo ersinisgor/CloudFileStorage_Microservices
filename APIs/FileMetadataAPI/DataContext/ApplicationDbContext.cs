@@ -21,6 +21,12 @@ namespace FileMetadataAPI.DataContext
                 .WithOne(fs => fs.File)
                 .HasForeignKey(fs => fs.FileId);
 
+            modelBuilder.Entity<File>(entity =>
+            {
+                entity.Property(e => e.Path)
+                      .IsRequired(false); // Explicitly make Path nullable
+            });
+
             modelBuilder.Entity<FileShare>()
                 .HasKey(fs => new { fs.FileId, fs.UserId });
         }
