@@ -6,19 +6,21 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using AuthenticationAPI.Commands;
+using AutoMapper;
 
 namespace AuthenticationAPI.Handlers
 {
-    internal class RefreshTokenCommandHandler(ApplicationDbContext context, IConfiguration configuration) : IRequestHandler<RefreshTokenCommand, AuthResult>
+    internal class RefreshTokenCommandHandler(ApplicationDbContext context, IConfiguration configuration, IMapper mapper) : IRequestHandler<RefreshTokenCommand, AuthResult>
     {
         public async Task<AuthResult> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
         {
             var user = context.Users.SingleOrDefault(u => u.RefreshToken == request.RefreshToken && u.RefreshTokenExpiry > DateTime.UtcNow);
             if (user == null)
-                throw new Exception("Geçersiz veya süresi dolmuş refresh token");
+                throw new InvalidOperationException("Invalid or expired refresh token");
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(configuration["Jwt:Key"]);
+            var expires = DateTime.UtcNow.AddDays(double.Parse(configuration["Jwt:Expires"]));
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
@@ -27,21 +29,24 @@ namespace AuthenticationAPI.Handlers
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim(ClaimTypes.Role, user.Role)
                 }),
-                Expires = DateTime.UtcNow.AddHours(1),
+                Expires = expires,
                 Issuer = configuration["Jwt:Issuer"],
                 Audience = configuration["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
+
             var newRefreshToken = Guid.NewGuid().ToString();
+            var newRefreshTokenExpiry = DateTime.UtcNow.AddDays(double.Parse(configuration["Jwt:RefreshTokenExpiry"]));
             user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiry = newRefreshTokenExpiry;
             await context.SaveChangesAsync(cancellationToken);
 
             return new AuthResult
             {
                 Token = tokenHandler.WriteToken(token),
-                RefreshToken = newRefreshToken
+                RefreshToken = newRefreshToken,
+                User = mapper.Map<UserInfo>(user)
             };
         }
     }
