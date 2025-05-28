@@ -364,3 +364,8 @@ FodyWeavers.xsd
 
 # Secrets
 secrets.json
+
+# Database
+APIs/AuthenticationAPI/Data/auth.db
+APIs/AuthenticationAPI/Data/auth.db-shm
+APIs/AuthenticationAPI/Data/auth.db-wal
