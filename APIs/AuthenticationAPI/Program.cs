@@ -7,12 +7,10 @@ using AuthenticationAPI.Behaviors;
 using MediatR;
 using System.Reflection;
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -37,7 +35,6 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
-// JWT Authentication configuration
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -56,9 +53,13 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AuthenticatedUser", policy => policy.RequireAuthenticatedUser());
+});
+
 var app = builder.Build();
 
-// Middlewares
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

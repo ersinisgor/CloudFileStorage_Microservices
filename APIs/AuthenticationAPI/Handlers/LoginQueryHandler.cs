@@ -10,7 +10,12 @@ using AuthenticationAPI.Queries;
 
 namespace AuthenticationAPI.Handlers
 {
-    internal class LoginQueryHandler(ApplicationDbContext context, IConfiguration configuration, ILogger<LoginQueryHandler> logger, IMapper mapper) : IRequestHandler<LoginQuery, AuthResult>
+    internal class LoginQueryHandler(
+        ApplicationDbContext context,
+        IConfiguration configuration,
+        ILogger<LoginQueryHandler> logger,
+        IMapper mapper
+        ) : IRequestHandler<LoginQuery, AuthResult>
     {
         public async Task<AuthResult> Handle(LoginQuery request, CancellationToken cancellationToken)
         {
