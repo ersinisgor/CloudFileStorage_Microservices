@@ -5,10 +5,12 @@ using AuthenticationAPI.Queries;
 using AuthenticationAPI.DTOs;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
 
 namespace AuthenticationAPI.Controllers
 {
+    /// <summary>
+    /// Controller for handling authentication-related operations.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController(IMediator mediator, ILogger<AuthController> logger) : ControllerBase
@@ -77,6 +79,7 @@ namespace AuthenticationAPI.Controllers
         /// </summary>
         /// <param name="command">The refresh token command containing the refresh token.</param>
         /// <returns>A new authentication result with a new token and refresh token.</returns>
+        [Authorize]
         [HttpPost("refresh")]
         public async Task<ActionResult<AuthResult>> RefreshToken([FromBody] RefreshTokenCommand command)
         {
