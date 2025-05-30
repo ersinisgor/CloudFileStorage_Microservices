@@ -16,26 +16,37 @@ namespace FileMetadataAPI.Handlers
     {
         public async Task<FileDTO> Handle(UpdateFileCommand request, CancellationToken cancellationToken)
         {
+            if (httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated != true)
+            {
+                throw new UnauthorizedAccessException("User is not authenticated.");
+            }
+
             var userIdClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null)
             {
                 throw new ForbiddenException("User ID claim not found.");
             }
-
             var userId = int.Parse(userIdClaim.Value);
 
             var file = await context.Files
                 .Include(f => f.FileShares)
-                .FirstOrDefaultAsync(f => f.Id == request.Id && f.OwnerId == userId, cancellationToken)
-                ?? throw new Exception("File not found or authorization error.");
+                .FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken)
+                ?? throw new NotFoundException("File not found.");
+
+            var roleClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (file.OwnerId != userId && roleClaim != "admin")
+            {
+                throw new ForbiddenException("Only the file owner or admin can update this file.");
+            }
 
             mapper.Map(request, file);
             file.FileShares.Clear();
             file.FileShares.AddRange(mapper.Map<List<FileShare>>(request.FileShares));
 
             await context.SaveChangesAsync(cancellationToken);
-
-            return mapper.Map<FileDTO>(file);
+            var fileDto = mapper.Map<FileDTO>(file);
+            fileDto.IsOwner = file.OwnerId == userId;
+            return fileDto;
         }
     }
 }
