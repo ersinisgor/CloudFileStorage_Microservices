@@ -5,6 +5,7 @@ using AutoMapper;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using FileMetadataAPI.Queries;
+using Microsoft.Extensions.Logging;
 
 namespace FileMetadataAPI.Handlers
 {
@@ -16,34 +17,21 @@ namespace FileMetadataAPI.Handlers
     {
         public async Task<List<FileDTO>> Handle(GetFilesQuery request, CancellationToken cancellationToken)
         {
-            // Önce JWT token'dan claim'leri kontrol et
-            var userIdFromClaim = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            // Eğer claim'de yoksa, Gateway'den gelen header'ı kontrol et
-            var userIdFromHeader = httpContextAccessor.HttpContext?.Request.Headers["X-User-Id"].FirstOrDefault();
-            var currentUserIdHeader = httpContextAccessor.HttpContext?.Request.Headers["X-Current-User-Id"].FirstOrDefault();
-
-            var userIdString = userIdFromClaim ?? userIdFromHeader ?? currentUserIdHeader;
-
-            if (string.IsNullOrEmpty(userIdString))
+            if (httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated != true)
             {
-                logger.LogError("User ID not found in claims or headers");
-                throw new UnauthorizedAccessException("User ID not found in request");
+                throw new UnauthorizedAccessException("User is not authenticated.");
             }
 
-            if (!int.TryParse(userIdString, out var userId))
+            var userIdClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
             {
-                logger.LogError("Invalid User ID format: {UserId}", userIdString);
-                throw new ArgumentException("Invalid User ID format");
+                throw new ForbiddenException("User ID claim not found.");
             }
+            var userId = int.Parse(userIdClaim.Value);
 
-            // Debug için tüm user bilgilerini logla
-            var userEmail = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Email)?.Value ??
-                           httpContextAccessor.HttpContext?.Request.Headers["X-User-Email"].FirstOrDefault();
-            var userName = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Name)?.Value ??
-                          httpContextAccessor.HttpContext?.Request.Headers["X-User-Name"].FirstOrDefault();
-            var userRole = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value ??
-                          httpContextAccessor.HttpContext?.Request.Headers["X-User-Role"].FirstOrDefault();
+            var userEmail = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
+            var userName = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+            var userRole = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
 
             logger.LogInformation("Fetching files for user - ID: {UserId}, Email: {UserEmail}, Name: {UserName}, Role: {UserRole}",
                 userId, userEmail, userName, userRole);
@@ -55,18 +43,15 @@ namespace FileMetadataAPI.Handlers
                     .Where(f => f.OwnerId == userId ||
                                 f.Visibility == Models.Visibility.Public ||
                                 (f.Visibility == Models.Visibility.Shared &&
-                                 f.FileShares.Any(fs => fs.UserId == userId)))
+                                 f.FileShares.Any(fs => fs.UserId == userId)) ||
+                                httpContextAccessor.HttpContext.User.IsInRole("admin"))
                     .ToListAsync(cancellationToken);
 
                 logger.LogInformation("Found {FileCount} files for user {UserId}", files.Count, userId);
 
                 var result = mapper.Map<List<FileDTO>>(files);
-
-                // Her dosya için sahiplik bilgisini ekle
                 foreach (var fileDto in result)
                 {
-                    //var originalFile = files.First(f => f.Id == fileDto.Id);
-                    //fileDto.IsOwner = originalFile.OwnerId == userId;
                     fileDto.IsOwner = fileDto.OwnerId == userId;
                 }
 
