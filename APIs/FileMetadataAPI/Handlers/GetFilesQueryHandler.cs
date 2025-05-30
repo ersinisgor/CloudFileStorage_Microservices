@@ -5,7 +5,6 @@ using AutoMapper;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using FileMetadataAPI.Queries;
-using Microsoft.Extensions.Logging;
 
 namespace FileMetadataAPI.Handlers
 {
@@ -31,10 +30,9 @@ namespace FileMetadataAPI.Handlers
 
             var userEmail = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
             var userName = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-            var userRole = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            logger.LogInformation("Fetching files for user - ID: {UserId}, Email: {UserEmail}, Name: {UserName}, Role: {UserRole}",
-                userId, userEmail, userName, userRole);
+            logger.LogInformation("Fetching files for user - ID: {UserId}, Email: {UserEmail}, Name: {UserName}",
+                userId, userEmail, userName);
 
             try
             {
@@ -43,8 +41,7 @@ namespace FileMetadataAPI.Handlers
                     .Where(f => f.OwnerId == userId ||
                                 f.Visibility == Models.Visibility.Public ||
                                 (f.Visibility == Models.Visibility.Shared &&
-                                 f.FileShares.Any(fs => fs.UserId == userId)) ||
-                                httpContextAccessor.HttpContext.User.IsInRole("admin"))
+                                 f.FileShares.Any(fs => fs.UserId == userId)))
                     .ToListAsync(cancellationToken);
 
                 logger.LogInformation("Found {FileCount} files for user {UserId}", files.Count, userId);

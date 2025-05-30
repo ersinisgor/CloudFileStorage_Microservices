@@ -33,10 +33,9 @@ namespace FileMetadataAPI.Handlers
                 .FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken)
                 ?? throw new NotFoundException("File not found.");
 
-            var roleClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (file.OwnerId != userId && roleClaim != "admin")
+            if (file.OwnerId != userId)
             {
-                throw new ForbiddenException("Only the file owner or admin can update this file.");
+                throw new ForbiddenException("Only the file owner can update this file.");
             }
 
             mapper.Map(request, file);

@@ -31,10 +31,9 @@ namespace FileMetadataAPI.Handlers
                 .FirstOrDefaultAsync(f => f.Id == request.FileId, cancellationToken)
                 ?? throw new NotFoundException("File not found.");
 
-            var roleClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (file.OwnerId != userId && roleClaim != "admin")
+            if (file.OwnerId != userId)
             {
-                throw new ForbiddenException("Only the file owner or admin can share this file.");
+                throw new ForbiddenException("Only the file owner can share this file.");
             }
 
             file.Visibility = Enum.Parse<Models.Visibility>(request.Visibility);

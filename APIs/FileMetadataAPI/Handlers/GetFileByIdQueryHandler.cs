@@ -20,10 +20,10 @@ namespace FileMetadataAPI.Handlers
     }
 
     internal class GetFileByIdQueryHandler(
-    ApplicationDbContext context,
-    IMapper mapper,
-    IHttpContextAccessor httpContextAccessor,
-    ILogger<GetFileByIdQueryHandler> logger) : IRequestHandler<GetFileByIdQuery, FileDTO>
+        ApplicationDbContext context,
+        IMapper mapper,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<GetFileByIdQueryHandler> logger) : IRequestHandler<GetFileByIdQuery, FileDTO>
     {
         public async Task<FileDTO> Handle(GetFileByIdQuery request, CancellationToken cancellationToken)
         {
@@ -46,16 +46,14 @@ namespace FileMetadataAPI.Handlers
                 .FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken)
                 ?? throw new NotFoundException("File not found.");
 
-            logger.LogInformation("File with ID {FileId} retrieved successfully.", request.Id);
-
-            var roleClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (file.Visibility != Visibility.Public && file.OwnerId != userId && roleClaim != "admin" &&
+            if (file.Visibility != Visibility.Public && file.OwnerId != userId &&
                 !file.FileShares.Any(fs => fs.UserId == userId && (fs.Permission == "Read" || fs.Permission == "Edit")))
             {
                 logger.LogWarning("Forbidden access: User {UserId} does not have permission to access file {FileId}.", userId, request.Id);
                 throw new ForbiddenException("You do not have permission to access this file.");
             }
 
+            logger.LogInformation("File with ID {FileId} retrieved successfully.", request.Id);
             var fileDto = mapper.Map<FileDTO>(file);
             fileDto.IsOwner = file.OwnerId == userId;
             return fileDto;

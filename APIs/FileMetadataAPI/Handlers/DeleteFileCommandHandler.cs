@@ -7,9 +7,9 @@ using FileMetadataAPI.Commands;
 namespace FileMetadataAPI.Handlers
 {
     internal class DeleteFileCommandHandler(
-           ApplicationDbContext context,
-           IHttpContextAccessor httpContextAccessor,
-           ILogger<DeleteFileCommandHandler> logger) : IRequestHandler<DeleteFileCommand>
+        ApplicationDbContext context,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<DeleteFileCommandHandler> logger) : IRequestHandler<DeleteFileCommand>
     {
         public async Task Handle(DeleteFileCommand request, CancellationToken cancellationToken)
         {
@@ -31,11 +31,10 @@ namespace FileMetadataAPI.Handlers
                 .FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken)
                 ?? throw new NotFoundException("File not found.");
 
-            var roleClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (file.OwnerId != userId && roleClaim != "admin")
+            if (file.OwnerId != userId)
             {
                 logger.LogWarning("Forbidden access: User {UserId} attempted to delete file {FileId} without proper permissions.", userId, request.Id);
-                throw new ForbiddenException("Only the file owner or admin can delete this file.");
+                throw new ForbiddenException("Only the file owner can delete this file.");
             }
 
             logger.LogInformation("User {UserId} is deleting file {FileId}.", userId, request.Id);

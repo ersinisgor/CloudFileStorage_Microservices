@@ -59,12 +59,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization policies
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
-});
-
 // HTTP client for Gateway communication
 builder.Services.AddHttpClient("GatewayAPI", client =>
 {
