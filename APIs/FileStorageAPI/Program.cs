@@ -26,12 +26,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization policies
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
-});
-
 // MediatR configuration
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
