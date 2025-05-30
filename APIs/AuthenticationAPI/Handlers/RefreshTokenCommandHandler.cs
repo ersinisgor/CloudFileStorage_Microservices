@@ -26,8 +26,7 @@ namespace AuthenticationAPI.Handlers
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
+                    new Claim(ClaimTypes.Email, user.Email)
                 }),
                 Expires = expires,
                 Issuer = configuration["Jwt:Issuer"],
