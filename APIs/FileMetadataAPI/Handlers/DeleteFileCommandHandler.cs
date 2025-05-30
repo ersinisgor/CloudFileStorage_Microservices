@@ -12,6 +12,11 @@ namespace FileMetadataAPI.Handlers
     {
         public async Task Handle(DeleteFileCommand request, CancellationToken cancellationToken)
         {
+            if (httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated != true)
+            {
+                throw new UnauthorizedAccessException("User is not authenticated.");
+            }
+
             var userIdClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null)
             {
@@ -20,8 +25,15 @@ namespace FileMetadataAPI.Handlers
             var userId = int.Parse(userIdClaim.Value);
 
             var file = await context.Files
-                .FirstOrDefaultAsync(f => f.Id == request.Id && f.OwnerId == userId, cancellationToken)
-                ?? throw new Exception("File not found or authorization error.");
+                .FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken)
+                ?? throw new NotFoundException("File not found.");
+
+            // RBAC and ABAC
+            var roleClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (file.OwnerId != userId && roleClaim != "admin")
+            {
+                throw new ForbiddenException("Only the file owner or admin can delete this file.");
+            }
 
             context.Files.Remove(file);
             await context.SaveChangesAsync(cancellationToken);
