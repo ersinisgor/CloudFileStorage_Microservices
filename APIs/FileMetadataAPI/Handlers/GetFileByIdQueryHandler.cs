@@ -47,7 +47,7 @@ namespace FileMetadataAPI.Handlers
                 ?? throw new NotFoundException("File not found.");
 
             if (file.Visibility != Visibility.Public && file.OwnerId != userId &&
-                !file.FileShares.Any(fs => fs.UserId == userId && (fs.Permission == "Read" || fs.Permission == "Edit")))
+                !file.FileShares.Any(fs => fs.UserId == userId && (fs.Permission == Permission.Read || fs.Permission == Permission.Edit)))
             {
                 logger.LogWarning("Forbidden access: User {UserId} does not have permission to access file {FileId}.", userId, request.Id);
                 throw new ForbiddenException("You do not have permission to access this file.");
