@@ -40,6 +40,7 @@ var app = builder.Build();
 app.UseCors("AllowMVC");
 app.UseHttpsRedirection();
 app.UseMiddleware<JwtAuthenticationMiddleware>();
+app.UseAuthorization();
 app.MapReverseProxy();
 
 await app.RunAsync();
