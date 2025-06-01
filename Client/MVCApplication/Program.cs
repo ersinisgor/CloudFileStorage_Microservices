@@ -6,18 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-// Session desteði ekle
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.SameSite = SameSiteMode.Strict;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // HTTPS gerektirir
-});
-
-// Cookie Authentication ekle
+// Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -48,15 +37,7 @@ builder.Services.AddLogging(logging =>
     logging.SetMinimumLevel(LogLevel.Information);
 });
 
-//builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-//    .AddCookie(options =>
-//    {
-//        options.LoginPath = "/Home/Login";
-//        options.AccessDeniedPath = "/Home/Error";
-//    });
-
-//builder.Services.AddHttpContextAccessor();
-
+// Form options
 builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 104857600; // 100 MB
@@ -73,7 +54,6 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
