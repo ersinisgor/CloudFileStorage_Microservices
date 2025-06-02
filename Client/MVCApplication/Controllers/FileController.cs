@@ -288,7 +288,7 @@ namespace MVCApplication.Controllers
             {
                 AddAuthorizationHeader();
 
-                var response = await _httpClient.GetAsync($"/api/storage/download/{id}");
+                var response = await _httpClient.GetAsync($"/api/storage/download?id={id}");
 
                 if (response.IsSuccessStatusCode)
                 {
