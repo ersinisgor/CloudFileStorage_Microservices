@@ -37,63 +37,62 @@ namespace MVCApplication.Controllers
 
             try
             {
-                
                 var json = JsonSerializer.Serialize(model);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.PostAsync("/api/auth/login", content);
 
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    var authResult = JsonSerializer.Deserialize<AuthResultViewModel>(responseContent, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-                    if (authResult?.Token != null)
-                    {
-                        var cookieOptions = new CookieOptions
-                        {
-                            HttpOnly = true,
-                            Secure = true,
-                            SameSite = SameSiteMode.Strict,
-                            Expires = DateTimeOffset.UtcNow.AddDays(1)
-                        };
-
-                        Response.Cookies.Append("AuthToken", authResult.Token, cookieOptions);
-
-                        if (!string.IsNullOrEmpty(authResult.RefreshToken))
-                        {
-                            Response.Cookies.Append("RefreshToken", authResult.RefreshToken, cookieOptions);
-                        }
-
-                        var claims = new List<Claim>
-                        {
-                            new Claim(ClaimTypes.NameIdentifier, authResult.User.Id.ToString()),
-                            new Claim(ClaimTypes.Name, authResult.User.Name ?? ""),
-                            new Claim(ClaimTypes.Email, authResult.User.Email ?? ""),
-                        };
-
-                        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                        
-
-                        await HttpContext.SignInAsync(
-                            CookieAuthenticationDefaults.AuthenticationScheme,
-                            new ClaimsPrincipal(claimsIdentity));
-
-                        _logger.LogInformation("User {Email} logged in successfully", model.Email);
-                        return RedirectToAction("Index", "File");
-                    }
-                }
-                else
+                if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     _logger.LogWarning("Login failed for {Email}: {Error}", model.Email, errorContent);
-
                     ModelState.AddModelError("", "Invalid email or password");
                     return View(model);
                 }
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var authResult = JsonSerializer.Deserialize<AuthResultViewModel>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (authResult?.Token == null)
+                {
+                    _logger.LogWarning("Login failed for {Email}: No token received", model.Email);
+                    ModelState.AddModelError("", "Invalid email or password");
+                    return View(model);
+                }
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddDays(1)
+                };
+
+                Response.Cookies.Append("AuthToken", authResult.Token, cookieOptions);
+
+                if (!string.IsNullOrEmpty(authResult.RefreshToken))
+                {
+                    Response.Cookies.Append("RefreshToken", authResult.RefreshToken, cookieOptions);
+                }
+
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, authResult.User.Id.ToString()),
+                    new Claim(ClaimTypes.Name, authResult.User.Name ?? ""),
+                    new Claim(ClaimTypes.Email, authResult.User.Email ?? ""),
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity));
+
+                _logger.LogInformation("User {Email} logged in successfully", model.Email);
+                return RedirectToAction("Index", "File");
             }
             catch (Exception ex)
             {
@@ -101,9 +100,6 @@ namespace MVCApplication.Controllers
                 ModelState.AddModelError("", "An error occurred during login");
                 return View(model);
             }
-
-            ModelState.AddModelError("", "Login failed");
-            return View(model);
         }
 
         [HttpGet]
