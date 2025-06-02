@@ -37,13 +37,8 @@ namespace MVCApplication.Controllers
 
             try
             {
-                var loginData = new
-                {
-                    Email = model.Email,
-                    Password = model.Password
-                };
-
-                var json = JsonSerializer.Serialize(loginData);
+                
+                var json = JsonSerializer.Serialize(model);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.PostAsync("/api/auth/login", content);
@@ -56,7 +51,7 @@ namespace MVCApplication.Controllers
                         PropertyNameCaseInsensitive = true
                     });
 
-                    if (authResult?.Token != null && authResult.User != null)
+                    if (authResult?.Token != null)
                     {
                         var cookieOptions = new CookieOptions
                         {
@@ -78,20 +73,14 @@ namespace MVCApplication.Controllers
                             new Claim(ClaimTypes.NameIdentifier, authResult.User.Id.ToString()),
                             new Claim(ClaimTypes.Name, authResult.User.Name ?? ""),
                             new Claim(ClaimTypes.Email, authResult.User.Email ?? ""),
-                            new Claim(ClaimTypes.Role, authResult.User.Role ?? "User")
                         };
 
                         var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                        var authProperties = new AuthenticationProperties
-                        {
-                            IsPersistent = model.RememberMe,
-                            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(1)
-                        };
+                        
 
                         await HttpContext.SignInAsync(
                             CookieAuthenticationDefaults.AuthenticationScheme,
-                            new ClaimsPrincipal(claimsIdentity),
-                            authProperties);
+                            new ClaimsPrincipal(claimsIdentity));
 
                         _logger.LogInformation("User {Email} logged in successfully", model.Email);
                         return RedirectToAction("Index", "File");
