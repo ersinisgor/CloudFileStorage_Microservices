@@ -23,7 +23,6 @@ namespace GatewayAPI.Middlewares
         {
             var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
 
-            // Anonim endpoint'ler için JWT kontrolünü atla
             if (_anonymousPaths.Any(p => path.StartsWith(p.ToLowerInvariant())))
             {
                 _logger.LogInformation("Skipping JWT validation for anonymous path: {Path}", path);
@@ -31,7 +30,6 @@ namespace GatewayAPI.Middlewares
                 return;
             }
 
-            // Authorization başlığını kontrol et
             var authHeader = context.Request.Headers["Authorization"].ToString();
             if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
@@ -57,13 +55,11 @@ namespace GatewayAPI.Middlewares
                     ClockSkew = TimeSpan.Zero
                 };
 
-                // Token'ı doğrula ve claim'leri al
                 var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
-                context.User = principal; // HttpContext.User'ı doldur
+                context.User = principal; 
 
                 _logger.LogInformation("JWT Token validated successfully for request to {Path}", path);
 
-                // Token'ı istek başlığında tut
                 context.Request.Headers["Authorization"] = $"Bearer {token}";
                 await _next(context);
             }
