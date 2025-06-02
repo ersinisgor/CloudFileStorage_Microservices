@@ -5,7 +5,6 @@ using FileMetadataAPI.Queries;
 using FileMetadataAPI.DTOs;
 using FluentValidation;
 using FileMetadataAPI.Handlers;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 
 namespace FileMetadataAPI.Controllers

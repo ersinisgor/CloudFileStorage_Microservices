@@ -5,13 +5,17 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AutoMapper;
 using AuthenticationAPI.Queries;
-using AuthenticationAPI.Validators;
-using FluentValidation;
 
 namespace AuthenticationAPI.Handlers
 {
-    internal class LoginQueryHandler(ApplicationDbContext context, IConfiguration configuration, ILogger<LoginQueryHandler> logger) : IRequestHandler<LoginQuery, AuthResult>
+    internal class LoginQueryHandler(
+        ApplicationDbContext context,
+        IConfiguration configuration,
+        ILogger<LoginQueryHandler> logger,
+        IMapper mapper
+        ) : IRequestHandler<LoginQuery, AuthResult>
     {
         public async Task<AuthResult> Handle(LoginQuery request, CancellationToken cancellationToken)
         {
@@ -26,46 +30,34 @@ namespace AuthenticationAPI.Handlers
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured."));
+            var expires = DateTime.UtcNow.AddDays(double.Parse(configuration["Jwt:Expires"]));
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Name, user.Name ?? string.Empty),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
+                    new Claim(ClaimTypes.Email, user.Email)
                 }),
-                Expires = DateTime.UtcNow.AddDays(1),
+                Expires = expires,
                 Issuer = configuration["Jwt:Issuer"],
                 Audience = configuration["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
+
             var refreshToken = Guid.NewGuid().ToString();
+            var refreshTokenExpiry = DateTime.UtcNow.AddDays(double.Parse(configuration["Jwt:RefreshTokenExpiry"]));
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddHours(2);
+            user.RefreshTokenExpiry = refreshTokenExpiry;
             await context.SaveChangesAsync(cancellationToken);
 
             var authResult = new AuthResult
             {
                 Token = tokenHandler.WriteToken(token),
                 RefreshToken = refreshToken,
-                User = new UserInfo
-                {
-                    Id = user.Id.ToString(),
-                    Name = user.Name,
-                    Email = user.Email,
-                    Role = user.Role
-                }
+                User = mapper.Map<UserInfo>(user)
             };
-
-            var validator = new AuthResultValidator();
-            var validationResult = await validator.ValidateAsync(authResult, cancellationToken);
-            if (!validationResult.IsValid)
-            {
-                logger.LogError("Validation failed for AuthResult: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-                throw new ValidationException(validationResult.Errors);
-            }
 
             logger.LogInformation("Login successful for email: {Email}", request.Email);
             return authResult;

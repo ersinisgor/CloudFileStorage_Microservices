@@ -5,6 +5,8 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Text;
 using MVCApplication.Models;
+using System.Net.Http.Headers;
+using System.Net.Http;
 
 namespace MVCApplication.Controllers
 {
@@ -26,7 +28,7 @@ namespace MVCApplication.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        public async Task<IActionResult> Login([FromForm] LoginViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -35,81 +37,62 @@ namespace MVCApplication.Controllers
 
             try
             {
-                var loginData = new
-                {
-                    Email = model.Email,
-                    Password = model.Password
-                };
-
-                var json = JsonSerializer.Serialize(loginData);
+                var json = JsonSerializer.Serialize(model);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                // Gateway üzerinden AuthenticationAPI'ye login isteği gönder
                 var response = await _httpClient.PostAsync("/api/auth/login", content);
 
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    var authResult = JsonSerializer.Deserialize<AuthResultViewModel>(responseContent, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-                    if (authResult?.Token != null && authResult.User != null)
-                    {
-                        // JWT token'ı güvenli HTTP-only cookie'ye kaydet
-                        var cookieOptions = new CookieOptions
-                        {
-                            HttpOnly = true,
-                            Secure = true, // HTTPS gerektir
-                            SameSite = SameSiteMode.Strict,
-                            Expires = DateTimeOffset.UtcNow.AddDays(1) // Token süresi ile eşleştir
-                        };
-
-                        Response.Cookies.Append("AuthToken", authResult.Token, cookieOptions);
-
-                        // Refresh token'ı da kaydet (opsiyonel)
-                        if (!string.IsNullOrEmpty(authResult.RefreshToken))
-                        {
-                            Response.Cookies.Append("RefreshToken", authResult.RefreshToken, cookieOptions);
-                        }
-
-                        // Kullanıcı bilgilerini session'a kaydet (UI için)
-                        HttpContext.Session.SetString("UserInfo", JsonSerializer.Serialize(authResult.User));
-
-                        // Authentication cookie oluştur (ASP.NET Core Identity sistemi için)
-                        var claims = new List<Claim>
-                        {
-                            new Claim(ClaimTypes.NameIdentifier, authResult.User.Id.ToString()),
-                            new Claim(ClaimTypes.Name, authResult.User.Name ?? ""),
-                            new Claim(ClaimTypes.Email, authResult.User.Email ?? ""),
-                            new Claim(ClaimTypes.Role, authResult.User.Role ?? "User")
-                        };
-
-                        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                        var authProperties = new AuthenticationProperties
-                        {
-                            IsPersistent = model.RememberMe,
-                            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(1)
-                        };
-
-                        await HttpContext.SignInAsync(
-                            CookieAuthenticationDefaults.AuthenticationScheme,
-                            new ClaimsPrincipal(claimsIdentity),
-                            authProperties);
-
-                        _logger.LogInformation("User {Email} logged in successfully", model.Email);
-                        return RedirectToAction("Index", "File");
-                    }
-                }
-                else
+                if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     _logger.LogWarning("Login failed for {Email}: {Error}", model.Email, errorContent);
-
                     ModelState.AddModelError("", "Invalid email or password");
                     return View(model);
                 }
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var authResult = JsonSerializer.Deserialize<AuthResultViewModel>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (authResult?.Token == null)
+                {
+                    _logger.LogWarning("Login failed for {Email}: No token received", model.Email);
+                    ModelState.AddModelError("", "Invalid email or password");
+                    return View(model);
+                }
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddDays(1)
+                };
+
+                Response.Cookies.Append("AuthToken", authResult.Token, cookieOptions);
+
+                if (!string.IsNullOrEmpty(authResult.RefreshToken))
+                {
+                    Response.Cookies.Append("RefreshToken", authResult.RefreshToken, cookieOptions);
+                }
+
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, authResult.User.Id.ToString()),
+                    new Claim(ClaimTypes.Name, authResult.User.Name ?? ""),
+                    new Claim(ClaimTypes.Email, authResult.User.Email ?? ""),
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity));
+
+                _logger.LogInformation("User {Email} logged in successfully", model.Email);
+                return RedirectToAction("Index", "File");
             }
             catch (Exception ex)
             {
@@ -117,33 +100,35 @@ namespace MVCApplication.Controllers
                 ModelState.AddModelError("", "An error occurred during login");
                 return View(model);
             }
-
-            ModelState.AddModelError("", "Login failed");
-            return View(model);
         }
 
-        [HttpPost]
+        [HttpGet]
         public async Task<IActionResult> Logout()
         {
             try
             {
-                // Cookie'leri temizle
+                var token = Request.Cookies["AuthToken"];
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(userId))
+                {
+                    var client = _httpClient;
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    await client.PostAsJsonAsync("/api/auth/logout", new { UserId = userId, Token = token });
+                }
+
                 Response.Cookies.Delete("AuthToken");
                 Response.Cookies.Delete("RefreshToken");
 
-                // Session'ı temizle
-                HttpContext.Session.Clear();
-
-                // Authentication cookie'yi temizle
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
                 _logger.LogInformation("User logged out successfully");
-                return RedirectToAction("Login");
+                return RedirectToAction("Login", "Account");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Logout error");
-                return RedirectToAction("Login");
+                return RedirectToAction("Login", "Account");
             }
         }
 
@@ -154,7 +139,7 @@ namespace MVCApplication.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Register([FromForm] RegisterViewModel model)
         {
             if (!ModelState.IsValid)
             {
