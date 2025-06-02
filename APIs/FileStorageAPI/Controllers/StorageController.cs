@@ -48,7 +48,7 @@ namespace FileStorageAPI.Controllers
                 }
 
                 var fileDto = await response.Content.ReadFromJsonAsync<FileDTO>();
-                if (fileDto == null || (fileDto.OwnerId != userId && !HttpContext.User.IsInRole("admin")))
+                if (fileDto == null || fileDto.OwnerId != userId)
                 {
                     return StatusCode(403, new { Error = "You do not have permission to upload this file." });
                 }
