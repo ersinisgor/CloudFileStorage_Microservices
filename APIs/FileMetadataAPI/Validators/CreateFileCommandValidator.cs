@@ -20,8 +20,14 @@ namespace FileMetadataAPI.Validators
             RuleFor(x => x.File)
                 .NotNull().WithMessage("File is required.")
                 .Must(file => file.Length > 0).WithMessage("File cannot be empty.");
-                //.Must(file => new[] { ".pdf", ".jpg" }.Contains(Path.GetExtension(file.FileName).ToLower()))
-                //.WithMessage("Only .pdf and .jpg files are allowed.");
+            When(x => x.Visibility == "Private" || x.Visibility == "Public", () =>
+            {
+                RuleFor(x => x.FileShares).Empty().WithMessage("FileShares must be empty when visibility is Private or Public.");
+            });
+            When(x => x.Visibility == "Shared", () =>
+            {
+                RuleFor(x => x.FileShares).NotEmpty().WithMessage("FileShares must not be empty when visibility is Shared.");
+            });
             RuleForEach(x => x.FileShares)
                 .SetValidator(new FileShareDTOValidator());
         }

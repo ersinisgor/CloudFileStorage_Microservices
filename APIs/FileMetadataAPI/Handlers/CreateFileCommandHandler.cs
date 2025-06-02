@@ -17,6 +17,11 @@ namespace FileMetadataAPI.Handlers
     {
         public async Task<FileDTO> Handle(CreateFileCommand request, CancellationToken cancellationToken)
         {
+            if (httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated != true)
+            {
+                throw new UnauthorizedAccessException("User is not authenticated.");
+            }
+
             var userIdClaim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null)
             {
@@ -24,16 +29,16 @@ namespace FileMetadataAPI.Handlers
             }
             var userId = int.Parse(userIdClaim.Value);
 
-            // Create file entity without path initially
+            // Create file entity without path initially  
             var file = mapper.Map<File>(request);
             file.OwnerId = userId;
             file.UploadDate = DateTime.UtcNow;
 
-            // Save to generate ID
+            // Save to generate ID  
             context.Files.Add(file);
             await context.SaveChangesAsync(cancellationToken);
 
-            // Upload file to FileStorageAPI with generated ID
+            // Upload file to FileStorageAPI with generated ID  
             var client = httpClientFactory.CreateClient("GatewayAPI");
             var token = httpContextAccessor.HttpContext.Request.Headers.Authorization.ToString().Replace("Bearer ", "");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -57,12 +62,12 @@ namespace FileMetadataAPI.Handlers
                 throw new Exception("Invalid response from storage service.");
             }
 
-            // Update file with storage path
+            // Update file with storage path  
             file.Path = storageResult.FilePath;
             await context.SaveChangesAsync(cancellationToken);
 
             var fileDto = mapper.Map<FileDTO>(file);
-            fileDto.IsOwner = true; // Yeni oluşturulan dosya, kullanıcıya aittir
+            fileDto.IsOwner = true;
             return fileDto;
         }
     }

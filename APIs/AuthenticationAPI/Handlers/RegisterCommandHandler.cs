@@ -12,7 +12,7 @@ namespace AuthenticationAPI.Handlers
         public async Task<UserDTO> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
             if (context.Users.Any(u => u.Email == request.Email))
-                throw new Exception("User already exist");
+                throw new InvalidOperationException("User with this email already exists");
 
             var user = mapper.Map<User>(request);
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);

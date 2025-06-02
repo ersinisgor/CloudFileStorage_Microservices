@@ -3,22 +3,20 @@ using MediatR;
 
 namespace FileStorageAPI.Handlers
 {
-    public class DeleteFileHandler : IRequestHandler<DeleteFileCommand>
+    public class DeleteFileHandler(IConfiguration configuration) : IRequestHandler<DeleteFileCommand>
     {
-        private readonly IConfiguration _configuration;
-
-        public DeleteFileHandler(IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
-
         public async Task Handle(DeleteFileCommand request, CancellationToken cancellationToken)
         {
-            var storagePath = _configuration.GetSection("FileStorage:StoragePath").Value;
+            var storagePath = configuration.GetSection("FileStorage:StoragePath").Value;
+            if (string.IsNullOrEmpty(storagePath))
+            {
+                throw new InvalidOperationException("Storage path is not configured.");
+            }
+
             var fullPath = Path.Combine(Directory.GetCurrentDirectory(), storagePath, request.FilePath);
             if (File.Exists(fullPath))
             {
-                File.Delete(fullPath);
+                await Task.Run(() => File.Delete(fullPath), cancellationToken);
             }
         }
     }

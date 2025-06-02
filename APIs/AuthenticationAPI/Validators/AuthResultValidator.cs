@@ -34,9 +34,9 @@ namespace AuthenticationAPI.Validators
                 .NotEmpty().WithMessage("The {PropertyName} field is required.")
                 .EmailAddress().WithMessage("The {PropertyName} must be a valid email address.");
 
-            RuleFor(x => x.Role)
-                .NotEmpty().WithMessage("The {PropertyName} field is required.")
-                .Must(role => role is "User" or "Admin").WithMessage("The {PropertyName} must be either 'User' or 'Admin'.");
+            //RuleFor(x => x.Role)
+            //    .NotEmpty().WithMessage("The {PropertyName} field is required.")
+            //    .Must(role => role is "User" or "Admin").WithMessage("The {PropertyName} must be either 'User' or 'Admin'.");
         }
     }
 }

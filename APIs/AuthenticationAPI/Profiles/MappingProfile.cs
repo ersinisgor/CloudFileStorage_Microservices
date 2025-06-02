@@ -11,6 +11,7 @@ namespace AuthenticationAPI.Profiles
         {
             CreateMap<User, UserDTO>();
             CreateMap<RegisterCommand, User>();
+            CreateMap<User, UserInfo>().ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id.ToString()));
         }
     }
 }

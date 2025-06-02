@@ -7,7 +7,7 @@
 
     @if (User.Identity.IsAuthenticated)
     {
-        <p>Welcome, @User.Identity.Name! <a asp-controller="Home" asp-action="Logout">Logout</a></p>
+        <p>Welcome, @(User.Identity.Name?.ToUpperFirst())! <a asp-controller="Account" asp-action="Logout">Logout</a></p>
         <a asp-controller="File" asp-action="Index" class="btn btn-primary">Go to Files</a>
     }
     else

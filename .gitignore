@@ -369,3 +369,6 @@ secrets.json
 APIs/AuthenticationAPI/Data/auth.db
 APIs/AuthenticationAPI/Data/auth.db-shm
 APIs/AuthenticationAPI/Data/auth.db-wal
+**/Data/*.db
+**/Data/*.db-shm
+**/Data/*.db-wal

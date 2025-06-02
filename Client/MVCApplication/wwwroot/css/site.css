@@ -1,15 +1,39 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
 }
 
-.navbar-brand {
-    font-weight: bold;
+.navbar {
+    background-color: #007bff; 
 }
 
-.table th, .table td {
-    vertical-align: middle;
+.navbar-brand, .nav-link, .navbar-text {
+    color: #ffffff !important; 
 }
 
-.alert {
-    margin-top: 1rem;
+.navbar-brand:hover, .nav-link:hover {
+    color: #000 !important; 
+}
+
+.navbar-text {
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.btn-primary:hover {
+    background-color: #003d82;
+    border-color: #003d82;
+}
+
+.table {
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.modal-content {
+    border-radius: 8px;
 }

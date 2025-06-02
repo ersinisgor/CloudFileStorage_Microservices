@@ -151,7 +151,8 @@ namespace MVCApplication.Controllers
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid model state for updating file {FileId}", model.Id);
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                _logger.LogWarning("Invalid model state for updating file {FileId}. Errors: {Errors}", model.Id, string.Join(", ", errors));
                 return PartialView("_UpdateFileModal", model);
             }
 
@@ -159,18 +160,33 @@ namespace MVCApplication.Controllers
             {
                 AddAuthorizationHeader();
 
-                // UpdateFileViewModel'i UpdateFileDTO'ya dönüştür
-                var updateDto = new UpdateFileDTO
+                // SharedUserIds'ı FileShares'e dönüştür
+                var fileShares = new List<FileShareDTO>();
+                if (!string.IsNullOrEmpty(model.SharedUserIds) && model.Visibility == "Shared")
+                {
+                    var userIds = model.SharedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s.Trim(), out var userId) ? userId : 0)
+                        .Where(userId => userId > 0)
+                        .ToList();
+
+                    fileShares = userIds.Select(userId => new FileShareDTO
+                    {
+                        UserId = userId,
+                        Permission = model.Permission ?? "Read"
+                    }).ToList();
+                }
+
+                // UpdateFileCommand oluştur
+                var updateCommand = new
                 {
                     Id = model.Id,
                     Name = model.Name,
                     Description = model.Description,
                     Visibility = model.Visibility,
-                    SharedUserIds = model.SharedUserIds,
-                    Permission = model.Permission
+                    FileShares = fileShares
                 };
 
-                var json = JsonSerializer.Serialize(updateDto);
+                var json = JsonSerializer.Serialize(updateCommand);
                 var content = new StringContent(json, Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
 
                 var response = await _httpClient.PutAsync($"/api/files/{model.Id}", content);
@@ -288,7 +304,7 @@ namespace MVCApplication.Controllers
             {
                 AddAuthorizationHeader();
 
-                var response = await _httpClient.GetAsync($"/api/storage/download/{id}");
+                var response = await _httpClient.GetAsync($"/api/storage/download?id={id}");
 
                 if (response.IsSuccessStatusCode)
                 {
